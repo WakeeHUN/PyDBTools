@@ -1,12 +1,14 @@
 import mysql.connector
 import os
 
+
 DB_CONFIG = {
-    "host": os.environ.get("DB_HOST", "10.180.8.23"),
-    "user": os.environ.get("DB_USER"),
+    "host":     os.environ.get("DB_HOST", "10.180.8.23"),
+    "user":     os.environ.get("DB_USER"),
     "password": os.environ.get("DB_PASSWORD"),
     "database": os.environ.get("DB_DATABASE", "traceability")
 }
+
 
 def execute_select_query(query, params=None, fetchone=False):
     try:
@@ -21,19 +23,17 @@ def execute_select_query(query, params=None, fetchone=False):
         print(f"Hiba az adatbázis művelet során: {err}")
         return None
 
-def getUserName(primeNr):
-    query = "SELECT userName FROM users WHERE primeNr = %s"
-    result = execute_select_query(query, (primeNr,), fetchone=True)
-    return result['userName'] if result and 'userName' in result else None
+def get_user_datas(prime_nr):
+    query = "SELECT userId, userName, language, roleId FROM users WHERE primeNr = %s"
+    result = execute_select_query(query, (prime_nr,), fetchone=True)
+    return result
 
-def getUsers():
-    query = "SELECT userName, roleId FROM users WHERE userStatus = %s"
+def get_users():
+    query = "SELECT userId, userName, primeNr FROM users WHERE userStatus = %s"
     results = execute_select_query(query, (True,))
-    if results:
-        users_data = []
-        for row in results:
-            users_data.append({'userName': row['userName'], 
-                               'roleId': row['roleId']})
-        return users_data
-    else:
-        return []
+    return results
+
+def get_type_datas(type_code):
+    query = "SELECT productId, productName, logNr FROM products WHERE productCode = %s"
+    result = execute_select_query(query, (type_code,), fetchone=True)
+    return result
