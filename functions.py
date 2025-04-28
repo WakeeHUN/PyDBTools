@@ -19,6 +19,21 @@ def log_to_file(event: str, logdir: str):
     with open(full_path, 'a', encoding='utf-8') as f:
         f.write(entry + '\n')
 
+
+def load_settings(file_path, setting_type):
+    settings = {}
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            exec(content, {}, settings)
+            return settings.get(setting_type)
+    except FileNotFoundError:
+        print(f"Hiba: A fájl '{file_path}' nem található.")
+        return None
+    except Exception as e:
+        print(f"Hiba a fájl beolvasása vagy feldolgozása során: {e}")
+        return None
+
         
 def get_station_data():
     station_data = {

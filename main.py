@@ -14,11 +14,8 @@ LOG_DIR = r'\\srv14-fs01\production\traceability\marking\ManualLabeling\Programs
 ZPL_DIR = r"\\srv14-fs01\production\traceability\marking\ManualLabeling\Labels\ZPL"
 fn.log_to_file(f"IP: {STATION_DATA["ip"]}; MAC: {STATION_DATA["mac"]}", LOG_DIR)
 
-SERIALPORT_DATA = {
-    "port": 'COM6',
-    "baudrate": 9600,
-    "data_queue": queue.Queue()
-}
+SERIALPORT_DATA = fn.load_settings('settings.ini', 'SERIALPORT_DATA')
+SERIALPORT_DATA["data_queue"] = queue.Queue()
 
 USER_DATA = fn.get_user_data('-')
 TYPE_DATA = fn.get_type_data('-')
@@ -125,7 +122,7 @@ def display_label_file(data_source: dict, target_area):
                     tartalom = f.read()
                     text_area.set_value(tartalom)
             except FileNotFoundError:
-                text_area.set_value('Nincs ilyen fájl! Új fájl lesz létrehozva.')
+                text_area.set_value('Nincs ilyen fájl!')
 
         ui.button('Mentés', icon='save', on_click=lambda: save_file(fila_name, text_area)).style('margin-left: 10px; flex: none').props('push')
 
