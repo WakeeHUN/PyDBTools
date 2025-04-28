@@ -37,3 +37,9 @@ def get_type_datas(type_code):
     query = "SELECT productId, productName, logNr FROM products WHERE productCode = %s"
     result = execute_select_query(query, (type_code,), fetchone=True)
     return result
+
+def get_label_datas(product_id, entry_nr):
+    query = "SELECT lastSn, hwswIndex, bomNr, labelCode, foilType, labelFile, snFormat, \
+             snResetType, copies FROM labels WHERE productId = %s AND entryNr = %s"
+    result = execute_select_query(query, (product_id, entry_nr), fetchone=True)
+    return result

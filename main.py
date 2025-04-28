@@ -5,25 +5,13 @@ import time
 import serial
 import queue
 import os
-import socket
-import uuid
-import datasource as ds
 import functions as fn
 
 
-STATION_DATA = {
-    "id": -1,
-    "name": '-',
-    "host_name": socket.gethostname(),
-    "ip": '-',
-    "mac": '-'
-}
-
-STATION_DATA["ip"] = socket.gethostbyname(STATION_DATA["host_name"])
-mac_num = hex(uuid.getnode()).replace('0x', '').zfill(12)
-STATION_DATA["mac"] = ':'.join(mac_num[i:i+2] for i in range(0, 12, 2))
+STATION_DATA = fn.get_station_data()
 
 LOG_DIR = r'\\srv14-fs01\production\traceability\marking\ManualLabeling\Programs\Labeling\Log'
+ZPL_DIR = r"\\srv14-fs01\production\traceability\marking\ManualLabeling\Labels\ZPL"
 fn.log_to_file(f"IP: {STATION_DATA["ip"]}; MAC: {STATION_DATA["mac"]}", LOG_DIR)
 
 SERIALPORT_DATA = {
@@ -32,20 +20,9 @@ SERIALPORT_DATA = {
     "data_queue": queue.Queue()
 }
 
-USER_DATA = {
-    "id": -1,
-    "name": '-',
-    "prime_nr": '-',
-    "language": 'HU',
-    "role_id": -1
-}
-
-TYPE_DATA = {
-    "product_id": -1,
-    "product_code": '',
-    "product_name": '',
-    "log_nr": ''
-}
+USER_DATA = fn.get_user_data('-')
+TYPE_DATA = fn.get_type_data('-')
+IND_LABEL_DATA = fn.get_label_data('-', 1)
 
 EO_TYPES = ['--- Válassz típust ---', 
             '10000323 - TCM615 CA', 
@@ -54,18 +31,6 @@ EO_TYPES = ['--- Válassz típust ---',
 
 def print_sn():
     os.system('copy /b cimke.zpl "\\\\localhost\\ZDesignerGK420t"')
-
-def type_change(selected_type):
-    if selected_type.value != '--- Válassz típust ---':
-        type_code = selected_type.value.split(' - ')[0]
-        sql_datas = ds.get_type_datas(type_code)
-        if sql_datas:
-            TYPE_DATA["product_id"]   = sql_datas['productId']
-            TYPE_DATA['product_code'] = type_code
-            TYPE_DATA["product_name"] = sql_datas['productName']
-            TYPE_DATA["log_nr"]       = sql_datas['logNr']
-
-            fn.log_to_file(f"Type selected: {selected_type.value} ({TYPE_DATA["product_id"]})", LOG_DIR)
 
 # Header
 with ui.header(elevated=True).style('background-color: #333; color: white; padding: 15px 15px; height: 65px'):
@@ -84,12 +49,12 @@ with ui.header(elevated=True).style('background-color: #333; color: white; paddi
         ui.input(placeholder='PO...').style('width: 150px; margin-right: 10px; flex: none;font-size: 15px') \
             .props('rounded outlined dense')
         
-        ui.select(EO_TYPES, value=EO_TYPES[0], on_change=type_change) \
+        ui.select(EO_TYPES, value=EO_TYPES[0], on_change=lambda e: type_change(e)) \
             .style('width: 300px; flex: auto; font-size: 15px') \
             .props('rounded outlined dense')
 
 # Footer
-with ui.footer().style('background-color: #333; color: white; padding: 4px 0px; height: 25px'):
+with ui.footer().style('background-color: #333; color: white; padding: 4px 0px; height: 28px'):
     with ui.row().style('display: flex; justify-content: space-around; align-items: center; width: 100%;'):
         ui.label(STATION_DATA["mac"])
         ui.label(STATION_DATA["ip"])
@@ -98,31 +63,77 @@ with ui.footer().style('background-color: #333; color: white; padding: 4px 0px; 
         ui.label(STATION_DATA["host_name"])
 
 # Fő tartalom a fejléc és lábléc nélkül
-with ui.row().style('width: 100%; height: calc(100vh - 122px);'): 
+with ui.row().style('width: 100%; height: calc(100vh - 125px);'): 
     # Fő tartalom
-    with ui.column().style('flex-grow: 1; background-color: #333; color: white; height: 100%;'):
-        with ui.column().style('width: 100%'):
-            with ui.column().style('flex-grow: 1; height: calc(100vh - 182px)'):
-                ser_nr_input = ui.input(placeholder='Nutzen sorszám...') \
-                    .style('width: 400px; margin: 10px; flex: none;font-size: 15px') \
-                    .props('outlined dense')
-                print_button = ui.button('Nyomtatás', icon='print').style('margin-left: 10px; flex: none').props('push')
+    with ui.column().style('flex-grow: 1; background-color: #333; color: white; height: 100%; width: calc(100vh - 180px);'):
+        with ui.column().style('width: 100%;'):
+            with ui.column().style('flex-grow: 1; height: calc(100vh - 182px); width: 100%;'):
+                with ui.row().style('width:100%; height: calc(100vh - 182px);'):
+                    with ui.column().style('width: 50%'):
+                        ser_nr_input = ui.input(placeholder='Nutzen sorszám...') \
+                            .style('width: 85%; margin: 10px; flex: none; font-size: 15px') \
+                            .props('outlined dense')
+                        print_button = ui.button('Nyomtatás', icon='print').style('margin-left: 10px; flex: none').props('push')
+                    with ui.column().style('margin: 10px; width: 45%; height: 100%;'):
+                        with ui.row():
+                            ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area)).props('flat round color=primary')
+                            ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area)).props('flat round color=primary')
+                            ui.button(icon='edit_note', on_click=lambda: display_label_file(IND_LABEL_DATA, data_area)).props('flat round color=primary')
+                        with ui.column().style('width: 100%; height: 100%;') as data_area:
+                            ui.label('')
             with ui.row().style('display: flex; justify-content: space-around; align-items: center; width: 100%'):
-                error_label = ui.label('Hibaüzenet helye').style('border: 1px solid yellow; border-radius: 6px; padding: 8px; background-color: #333;')
+                error_label = ui.label('Hibaüzenet helye') \
+                    .style('border: 1px solid yellow; border-radius: 6px; padding: 8px; background-color: #333;')
                 error_label.visible = False
 
     # Jobb oldali sáv
     with ui.column().style('width: 180px; height: 100%; flex-shrink: 0; background-color: #333; color: white; ' \
         'flex-direction: column; justify-content: flex-end; gap: 0px;'):
         # Ide jöhet az oldalsáv tartalma
-        with ui.column().style('width: 97%; margin-right: 5px; gap: 0px'):
-            clock_label = ui.label('12:14:25').classes('text-right w-full').style('font-size: 25px')
+        with ui.column().style('width: 96%; margin-right: 10px; gap: 0px'):
+            clock_label = ui.label('12:14:25').classes('text-right w-full').style('font-size: 25px;')
             uptime_label = ui.label('Uptime: 0d 0h 00m').classes('text-right w-full').style('font-size: 12px')
 
 # Az aktuális idő kiírása
 def update_clock():
     current_time = time.strftime('%H:%M:%S')
     clock_label.text = current_time
+
+# Kiválasztott termék adatainak kilistázása
+def display_db_data(data_source: dict, target_area):
+    target_area.clear()
+    with target_area:
+        for key, value in data_source.items():
+            with ui.row().classes('items-center').style('gap: 12px;'):
+                ui.label(f'{key}:').style('font-weight: bold; min-width: 100px;')
+                ui.label(str(value))
+
+# ZPL szerkesztő megjelenítése
+def display_label_file(data_source: dict, target_area):
+    target_area.clear()
+    fila_name = rf"{ZPL_DIR}\{IND_LABEL_DATA['label_file']}"
+    with target_area:
+        # Szövegmező létrehozása
+        text_area = ui.textarea(label=fila_name, placeholder='Fájl betöltése folyamatban...')
+        text_area.props('rows=15 outlined spellcheck=false')
+        text_area.style('width: 100%;')
+
+        # Fájl betöltése
+        if len(fila_name) > 5:
+            try:
+                with open(fila_name, 'r', encoding='utf-8') as f:
+                    tartalom = f.read()
+                    text_area.set_value(tartalom)
+            except FileNotFoundError:
+                text_area.set_value('Nincs ilyen fájl! Új fájl lesz létrehozva.')
+
+        ui.button('Mentés', icon='save', on_click=lambda: save_file(fila_name, text_area)).style('margin-left: 10px; flex: none').props('push')
+
+# Fájl mentése
+def save_file(file_path: str, new_text):
+    with open(file_path, 'w', encoding='utf-8') as f:
+        f.write(new_text.value)
+    ui.notify('Mentve!')
 
 # Háttérszál: olvassa a soros portot, és beírja a queue-ba
 def serial_reader():
@@ -133,10 +144,12 @@ def serial_reader():
                 if line:
                     SERIALPORT_DATA["data_queue"].put(line)
     except Exception as e:
-        SERIALPORT_DATA["data_queue"].put(f'Hiba a soros porton: {e}')
+        error_label.text = f'Hiba a soros porton: {e}'
+        error_label.visible = True
 
 # Beolvasott vonalkód feldolgozása
 def proc_serial_data(serial_data: str):
+    error_label.visible = False
     code_Id = serial_data[2:3]
     bc = serial_data[4:-1]
     if (len(bc) == 10) & (code_Id == 'C'):
@@ -144,23 +157,30 @@ def proc_serial_data(serial_data: str):
     else:
         proc_prod_barcode(bc)
 
+# User vonalkód feldolgozása
 def proc_user_barcode(user_bc: str):
-    sql_datas = ds.get_user_datas(user_bc)
-    if sql_datas:
-        USER_DATA["prime_nr"] = user_bc
-        USER_DATA['id']       = sql_datas['userId']
-        USER_DATA['name']     = sql_datas['userName']
-        USER_DATA['language'] = sql_datas['language']
-        USER_DATA['role_id']  = sql_datas['roleId']
-
+    USER_DATA = fn.get_user_data(user_bc)
+    if USER_DATA['id'] > 0:
         input_user_name.value = USER_DATA['name']
         fn.log_to_file(f"User logged in: {USER_DATA['name']} ({USER_DATA['id']})", LOG_DIR)
 
+# Termék vonalkód feldolgozása
 def proc_prod_barcode(prod_bc: str):
     ser_nr_input.value = prod_bc
     if prod_bc[1:4] != TYPE_DATA['log_nr']:
         error_label.text = 'E101 - Log szám eltérés!'
         error_label.visible = True
+
+# Típusváltás
+def type_change(selected_type):
+    global TYPE_DATA, IND_LABEL_DATA
+    if selected_type.value != '--- Válassz típust ---':
+        type_code = selected_type.value.split(' - ')[0]
+        TYPE_DATA = fn.get_type_data(type_code)
+        if TYPE_DATA['id'] > 0:
+            IND_LABEL_DATA = fn.get_label_data(TYPE_DATA['id'], 1)
+            fn.log_to_file(f"Type selected: {selected_type.value} ({TYPE_DATA["id"]})", LOG_DIR)
+            display_db_data(IND_LABEL_DATA, data_area)
 
 # GUI frissítő: lekérdezi a queue-t és kinyeri a vonalkód tartalmat
 def update_gui():
