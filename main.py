@@ -1,4 +1,5 @@
-from nicegui import ui
+from nicegui import ui, app
+import nicepdf
 import threading
 import webview
 import time
@@ -25,6 +26,7 @@ EO_TYPES = ['--- Válassz típust ---',
             '10000323 - TCM615 CA', 
             '13603089-01 - TCM515U']
 
+app.add_static_files('/pdf', 'D:/Temp')
 
 def print_sn():
     os.system('copy /b cimke.zpl "\\\\localhost\\ZDesignerGK420t"')
@@ -55,8 +57,8 @@ with ui.footer().style('background-color: #333; color: white; padding: 4px 0px; 
     with ui.row().style('display: flex; justify-content: space-around; align-items: center; width: 100%;'):
         ui.label(STATION_DATA["mac"])
         ui.label(STATION_DATA["ip"])
-        ui.label('-')
-        ui.label('-')
+        ui.label(STATION_DATA["id"])
+        ui.label(STATION_DATA["name"])
         ui.label(STATION_DATA["host_name"])
 
 # Fő tartalom a fejléc és lábléc nélkül
@@ -65,17 +67,18 @@ with ui.row().style('width: 100%; height: calc(100vh - 125px);'):
     with ui.column().style('flex-grow: 1; background-color: #333; color: white; height: 100%; width: calc(100vh - 180px);'):
         with ui.column().style('width: 100%;'):
             with ui.column().style('flex-grow: 1; height: calc(100vh - 182px); width: 100%;'):
-                with ui.row().style('width:100%; height: calc(100vh - 182px);'):
-                    with ui.column().style('width: 50%'):
+                with ui.row().style('width:100%; height: calc(100vh - 182px);') as main_area:
+                    with ui.column().style('width: 40%') as left_column:
                         ser_nr_input = ui.input(placeholder='Nutzen sorszám...') \
                             .style('width: 85%; margin: 10px; flex: none; font-size: 15px') \
                             .props('outlined dense')
                         print_button = ui.button('Nyomtatás', icon='print').style('margin-left: 10px; flex: none').props('push')
-                    with ui.column().style('margin: 10px; width: 45%; height: 100%;'):
+                    with ui.column().style('margin: 10px; width: 55%; height: 100%;') as right_column:
                         with ui.row():
-                            ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area)).props('flat round color=primary')
-                            ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area)).props('flat round color=primary')
+                            ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')).props('flat round color=primary')
+                            ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')).props('flat round color=primary')
                             ui.button(icon='edit_note', on_click=lambda: display_label_file(IND_LABEL_DATA, data_area)).props('flat round color=primary')
+                            ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)).props('flat round color=primary')
                         with ui.column().style('width: 100%; height: 100%;') as data_area:
                             ui.label('')
             with ui.row().style('display: flex; justify-content: space-around; align-items: center; width: 100%'):
@@ -97,9 +100,12 @@ def update_clock():
     clock_label.text = current_time
 
 # Kiválasztott termék adatainak kilistázása
-def display_db_data(data_source: dict, target_area):
+def display_db_data(data_source: dict, target_area, icon, caption):
     target_area.clear()
     with target_area:
+        with ui.row().style('font-size: 20px'):
+            ui.icon(icon)
+            ui.label(caption)
         for key, value in data_source.items():
             with ui.row().classes('items-center').style('gap: 12px;'):
                 ui.label(f'{key}:').style('font-weight: bold; min-width: 100px;')
@@ -110,6 +116,9 @@ def display_label_file(data_source: dict, target_area):
     target_area.clear()
     fila_name = rf"{ZPL_DIR}\{IND_LABEL_DATA['label_file']}"
     with target_area:
+        with ui.row().style('font-size: 20px'):
+            ui.icon('edit_note')
+            ui.label('Címke szerkesztése')
         # Szövegmező létrehozása
         text_area = ui.textarea(label=fila_name, placeholder='Fájl betöltése folyamatban...')
         text_area.props('rows=15 outlined spellcheck=false')
@@ -131,6 +140,28 @@ def save_file(file_path: str, new_text):
     with open(file_path, 'w', encoding='utf-8') as f:
         f.write(new_text.value)
     ui.notify('Mentve!')
+
+dialog = ui.dialog().style('widt: 100%').props('backdrop-filter="blur(8px) brightness(40%)"')
+def show_pdf(target_area):
+    ser_nr_input.visible=False
+    print_button.visible=False
+    left_column.style('flex: none; width: 0%;')
+    right_column.style('flex: none; width: 100%;')
+
+    target_area.clear()
+    with target_area:
+        ui.html('''
+            <iframe src="/pdf/test.pdf" width="100%" height="100%" style="border: none;"></iframe>
+            ''').style('width: 100%; height: 100%')
+        ui.button('Bezár', on_click=lambda: close_pdf()).classes('w-full')
+
+def close_pdf():
+    ser_nr_input.visible=True
+    print_button.visible=True
+    left_column.style('flex: none; width: 40%;')
+    right_column.style('flex: none; width: 55%;')
+
+    display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')
 
 # Háttérszál: olvassa a soros portot, és beírja a queue-ba
 def serial_reader():

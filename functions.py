@@ -3,6 +3,7 @@ import os
 import socket
 import uuid
 import datasource as ds
+import fitz
 
 
 def log_to_file(event: str, logdir: str):
@@ -33,12 +34,31 @@ def load_settings(file_path, setting_type):
     except Exception as e:
         print(f"Hiba a fájl beolvasása vagy feldolgozása során: {e}")
         return None
+    
+
+def pdf_to_images(pdf_path, output_dir="images"):
+    """PDF oldalak konvertálása képekké."""
+    import os
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    doc = fitz.open(pdf_path)
+    image_paths = []
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)
+        mat = fitz.Matrix(100/72, 100/72)  # Átalakítás DPI-re (az alapértelmezett 72 DPI)
+        pix = page.get_pixmap(matrix=mat)
+        output_file = os.path.join(output_dir, f"page_{page_num + 1}.png")
+        pix.save(output_file)
+        image_paths.append(output_file)
+    doc.close()
+    return image_paths
 
         
 def get_station_data():
     station_data = {
-        "id": -1,
-        "name": '-',
+        "id": 8013,
+        "name": 'EnOcean Labeling',
         "host_name": socket.gethostname(),
         "ip": '-',
         "mac": '-'
