@@ -78,7 +78,6 @@ with ui.row().style('width: 100%; height: calc(100vh - 125px);'):
                             ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')).props('flat round color=primary')
                             ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')).props('flat round color=primary')
                             ui.button(icon='edit_note', on_click=lambda: display_label_file(IND_LABEL_DATA, data_area)).props('flat round color=primary')
-                            ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)).props('flat round color=primary')
                         with ui.column().style('width: 100%; height: 100%;') as data_area:
                             ui.label('')
             with ui.row().style('display: flex; justify-content: space-around; align-items: center; width: 100%'):
@@ -87,10 +86,13 @@ with ui.row().style('width: 100%; height: calc(100vh - 125px);'):
                 error_label.visible = False
 
     # Jobb oldali sáv
-    with ui.column().style('width: 180px; height: 100%; flex-shrink: 0; background-color: #333; color: white; ' \
-        'flex-direction: column; justify-content: flex-end; gap: 0px;'):
+    with ui.column().style('width: 180px; height: 100%; flex-shrink: 0; background-color: #333; color: white; gap: 0px;'):
         # Ide jöhet az oldalsáv tartalma
-        with ui.column().style('width: 96%; margin-right: 10px; gap: 0px'):
+        with ui.column().style('width: 96%; margin-right: 10px; gap: 0px;'):
+            with ui.column().style('width: 100%; height: calc(100vh - 185px);') as wi_area:
+                with ui.row():
+                    ui.button('M-P-G-0022').style('width: 120px; margin-bottom: 0px').props('push dense')
+                    ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)).props('flat round color=primary dense')
             clock_label = ui.label('12:14:25').classes('text-right w-full').style('font-size: 25px;')
             uptime_label = ui.label('Uptime: 0d 0h 00m').classes('text-right w-full').style('font-size: 12px')
 
@@ -151,7 +153,7 @@ def show_pdf(target_area):
     target_area.clear()
     with target_area:
         ui.html('''
-            <iframe src="/pdf/test.pdf" width="100%" height="100%" style="border: none;"></iframe>
+            <iframe src="/pdf/test.pdf#toolbar=0" width="100%" height="100%" style="border: none;"></iframe>
             ''').style('width: 100%; height: 100%')
         ui.button('Bezár', on_click=lambda: close_pdf()).classes('w-full')
 
@@ -208,7 +210,7 @@ def type_change(selected_type):
         if TYPE_DATA['id'] > 0:
             IND_LABEL_DATA = fn.get_label_data(TYPE_DATA['id'], 1)
             fn.log_to_file(f"Type selected: {selected_type.value} ({TYPE_DATA["id"]})", LOG_DIR)
-            display_db_data(IND_LABEL_DATA, data_area)
+            display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')
 
 # GUI frissítő: lekérdezi a queue-t és kinyeri a vonalkód tartalmat
 def update_gui():
