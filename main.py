@@ -1,5 +1,4 @@
 from nicegui import ui, app
-import nicepdf
 import threading
 import webview
 import time
@@ -7,7 +6,13 @@ import serial
 import queue
 import os
 import functions as fn
+import element_props as ep
 
+app.add_static_files('/static', 'static')
+app.add_static_files('/pdf', 'D:/Temp')
+
+# A külső CSS fájl belinkelése
+ui.add_head_html(f'<link rel="stylesheet" href="/static/style.css?{int(time.time())}">')
 
 STATION_DATA = fn.get_station_data()
 
@@ -26,70 +31,84 @@ EO_TYPES = ['--- Válassz típust ---',
             '10000323 - TCM615 CA', 
             '13603089-01 - TCM515U']
 
-app.add_static_files('/pdf', 'D:/Temp')
-
 def print_sn():
     os.system('copy /b cimke.zpl "\\\\localhost\\ZDesignerGK420t"')
 
 # Header
-with ui.header(elevated=True).style('background-color: #333; color: white; padding: 15px 15px; height: 65px'):
-    with ui.row().style('display: flex; justify-content: space-around; align-items: center; width: 100%;'):
-
-        ui.select(['ENOCEAN_LABELING',], value='ENOCEAN_LABELING') \
-            .style('width: 250px; margin-right: 10px; flex: none; font-size: 15px;') \
-            .props('rounded outlined dense')
+with ui.header().classes('app-header'): 
+    ui.select(['ENOCEAN_LABELING',], value='ENOCEAN_LABELING') \
+        .classes('header-element header-select-program') \
+        .props(ep.HEADER_INPUT_PROPS)
+    
+    with ui.input(placeholder='Felhasználó...') \
+        .classes('header-element header-input-user') \
+        .props(ep.HEADER_INPUT_PROPS) as input_user_name:
+        ui.button(color='orange-8', on_click=lambda: input_user_name.set_value(None), icon='logout') \
+            .props('flat dense').bind_visibility_from(input_user_name, 'value')
         
-        with ui.input(placeholder='Felhasználó...') \
-            .style('width: 150px; margin-right: 10px; flex: auto; font-size: 15px; text-align: center; ') \
-            .props('rounded outlined dense') as input_user_name:
-            ui.button(color='orange-8', on_click=lambda: input_user_name.set_value(None), icon='logout') \
-                .props('flat dense').bind_visibility_from(input_user_name, 'value')
-            
-        ui.input(placeholder='PO...').style('width: 150px; margin-right: 10px; flex: none;font-size: 15px') \
-            .props('rounded outlined dense')
-        
-        ui.select(EO_TYPES, value=EO_TYPES[0], on_change=lambda e: type_change(e)) \
-            .style('width: 300px; flex: auto; font-size: 15px') \
-            .props('rounded outlined dense')
+    ui.input(placeholder='PO...') \
+        .classes('header-element header-input-po') \
+        .props(ep.HEADER_INPUT_PROPS)
+    
+    ui.select(EO_TYPES, value=EO_TYPES[0], on_change=lambda e: type_change(e)) \
+        .classes('header-element header-select-type') \
+        .props(ep.HEADER_INPUT_PROPS)
 
 # Footer
-with ui.footer().style('background-color: #333; color: white; padding: 4px 0px; height: 28px'):
-    with ui.row().style('display: flex; justify-content: space-around; align-items: center; width: 100%;'):
-        ui.label(STATION_DATA["mac"])
-        ui.label(STATION_DATA["ip"])
-        ui.label(STATION_DATA["id"])
-        ui.label(STATION_DATA["name"])
-        ui.label(STATION_DATA["host_name"])
+with ui.footer().classes('app-footer'):
+    ui.label(STATION_DATA["mac"])
+    ui.label(STATION_DATA["ip"])
+    ui.label(STATION_DATA["id"])
+    ui.label(STATION_DATA["name"])
+    ui.label(STATION_DATA["host_name"])
 
 # Fő tartalom a fejléc és lábléc nélkül
 with ui.row().style('width: 100%; height: calc(100vh - 125px);'): 
     # Fő tartalom
-    with ui.column().style('flex-grow: 1; background-color: #333; color: white; height: 100%; width: calc(100vh - 180px);'):
-        with ui.column().style('width: 100%;'):
-            with ui.column().style('flex-grow: 1; height: calc(100vh - 182px); width: 100%;'):
-                with ui.row().style('width:100%; height: calc(100vh - 182px);') as main_area:
-                    with ui.column().style('width: 40%') as left_column:
+    with ui.column() \
+        .classes('main-content-container') \
+        .style('width: calc(100vh - 180px);'):
+        with ui.column().classes('content-inner-column') \
+            .style('flex-grow: 1; height: calc(100vh - 182px);'):
+                with ui.row().classes('main-layout-row') \
+                        .style('height: calc(100vh - 182px);') as main_area:
+                    
+                    with ui.column().classes('left-column') as left_column:
                         ser_nr_input = ui.input(placeholder='Nutzen sorszám...') \
-                            .style('width: 85%; margin: 10px; flex: none; font-size: 15px') \
+                            .classes('left-column-input') \
                             .props('outlined dense')
-                        print_button = ui.button('Nyomtatás', icon='print').style('margin-left: 10px; flex: none').props('push')
-                    with ui.column().style('margin: 10px; width: 55%; height: 100%;') as right_column:
+                        print_button = ui.button('Nyomtatás', icon='print') \
+                            .classes('print-button') \
+                            .props('push')
+                        
+                    with ui.column().classes('right-column') as right_column:
                         with ui.row():
-                            ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')).props('flat round color=primary')
-                            ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')).props('flat round color=primary')
-                            ui.button(icon='edit_note', on_click=lambda: display_label_file(IND_LABEL_DATA, data_area)).props('flat round color=primary')
-                        with ui.column().style('width: 100%; height: 100%;') as data_area:
+                            ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')) \
+                                .props(ep.TOOL_BUTTON_PROPS)
+                            ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')) \
+                                .props(ep.TOOL_BUTTON_PROPS)
+                            ui.button(icon='edit_note', on_click=lambda: display_label_file(IND_LABEL_DATA, data_area)) \
+                                .props(ep.TOOL_BUTTON_PROPS)
+                        with ui.column().classes('data-display-area') as data_area:
                             ui.label('')
-            with ui.row().style('display: flex; justify-content: space-around; align-items: center; width: 100%'):
-                error_label = ui.label('Hibaüzenet helye') \
-                    .style('border: 1px solid yellow; border-radius: 6px; padding: 8px; background-color: #333;')
-                error_label.visible = False
+                # Alsó sor a hibaüzenetnek
+                with ui.row().classes('bottom-status-row'):
+                    error_label = ui.label('Hibaüzenet helye') \
+                        .classes('error-message-label')
+                    error_label.visible = False
 
     # Jobb oldali sáv
     with ui.column().style('width: 180px; height: 100%; flex-shrink: 0; background-color: #333; color: white; gap: 0px;'):
         # Ide jöhet az oldalsáv tartalma
         with ui.column().style('width: 96%; margin-right: 10px; gap: 0px;'):
-            with ui.column().style('width: 100%; height: calc(100vh - 185px);') as wi_area:
+            with ui.column().style('width: 100%; height: calc(100vh - 185px); margin: 10px') as wi_area:
+                ui.label('Munkautasítások')
+                with ui.row():
+                    ui.button('M-P-G-0022').style('width: 120px; margin-bottom: 0px').props('push dense')
+                    ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)).props('flat round color=primary dense')
+                with ui.row():
+                    ui.button('M-P-G-0022').style('width: 120px; margin-bottom: 0px').props('push dense')
+                    ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)).props('flat round color=primary dense')
                 with ui.row():
                     ui.button('M-P-G-0022').style('width: 120px; margin-bottom: 0px').props('push dense')
                     ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)).props('flat round color=primary dense')

@@ -1,0 +1,114 @@
+/* Általános stílusok a fejléchez és lábléchez */
+.app-header, .app-footer {
+    background-color: #333;
+    color: white;
+    padding: 15px 15px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+}
+
+/* Lábléc specifikus stílusa (ha eltér a fejléctől) */
+.app-footer {
+    padding: 4px 0px;
+    height: 28px;
+}
+
+/* Stílusok a fejlécben lévő select és input elemekhez */
+.header-element {
+    font-size: 15px;
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.header-select-program { /* Az első select */
+    width: 250px;
+    flex: none;
+}
+
+.header-input-user { /* A felhasználó input */
+    width: 150px;
+    flex: auto;
+    text-align: center;
+}
+
+.header-input-po { /* A PO input */
+    width: 150px;
+    flex: none;
+}
+
+.header-select-type { /* Az utolsó select */
+     width: 300px;
+     flex: auto;
+}
+
+/* Fő tartalom konténer */
+.main-content-container {
+    flex-grow: 1;
+    background-color: #333; /* Ha az egész tartalomnak ilyen háttere van */
+    color: white; /* Ha az egész tartalomnak ilyen a betűszíne */
+    height: 100%; /* Vagy fix magasság, ha nem a flex-grow adja */
+    /* width: calc(100vh - 180px); -- Ezt a style()-ban hagytam a példában, mert 'vh' alapú, de áttehető ha konstans */
+}
+
+/* Belső oszlopok a fő tartalom rendszerezéséhez */
+.content-inner-column {
+    width: 100%;
+    /* Flex-grow és magasság specifikusabb lehet a belső oszlopokban */
+    /* flex-grow: 1; */
+}
+
+/* Fő elrendezés sor (bal/jobb oszlopokhoz) */
+.main-layout-row {
+     width: 100%;
+}
+
+/* Bal oldali oszlop stílusa */
+.left-column {
+    width: 40%; /* Itt százalékos szélesség */
+    /* margin, padding, stb. ide */
+}
+
+/* Jobb oldali oszlop stílusa */
+.right-column {
+    margin: 10px; /* Margin a jobb oszlop körül */
+    width: 55%; /* Itt százalékos szélesség */
+    height: 100%; /* Magasság kitöltése */
+}
+
+/* Bal oldali input mezők stílusa (pl. sorszám input) */
+.left-column-input {
+    width: 85%; /* Specifikus szélesség */
+    margin: 10px; /* Specifikus margin */
+    flex: none;
+    font-size: 15px; /* Ha nem általános input stílus */
+}
+
+/* Nyomtatás gomb stílusa */
+.print-button {
+    margin-left: 10px; /* Specifikus margin */
+    flex: none;
+}
+
+/* Adatmegjelenítő terület (jobb oszlop alján) */
+.data-display-area {
+    width: 100%;
+    height: 100%; /* Kitölti a rendelkezésre álló helyet */
+}
+
+/* Hibaüzenet sor (alul) */
+.bottom-status-row {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+}
+
+/* Hibaüzenet label stílusa */
+.error-message-label {
+    border: 1px solid yellow;
+    border-radius: 6px;
+    padding: 8px;
+    background-color: #333; /* Vagy más szín, ha eltér */
+}
