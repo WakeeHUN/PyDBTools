@@ -49,40 +49,38 @@
     background-color: #333; /* Ha az egész tartalomnak ilyen háttere van */
     color: white; /* Ha az egész tartalomnak ilyen a betűszíne */
     height: 100%; /* Vagy fix magasság, ha nem a flex-grow adja */
-    /* width: calc(100vh - 180px); -- Ezt a style()-ban hagytam a példában, mert 'vh' alapú, de áttehető ha konstans */
+    width: calc(100vh - 180px);
 }
 
 /* Belső oszlopok a fő tartalom rendszerezéséhez */
 .content-inner-column {
     width: 100%;
-    /* Flex-grow és magasság specifikusabb lehet a belső oszlopokban */
-    /* flex-grow: 1; */
 }
 
 /* Fő elrendezés sor (bal/jobb oszlopokhoz) */
 .main-layout-row {
      width: 100%;
+     height: calc(100vh - 182px);
 }
 
 /* Bal oldali oszlop stílusa */
 .left-column {
-    width: 40%; /* Itt százalékos szélesség */
-    /* margin, padding, stb. ide */
+    width: 40%;
 }
 
 /* Jobb oldali oszlop stílusa */
 .right-column {
-    margin: 10px; /* Margin a jobb oszlop körül */
-    width: 55%; /* Itt százalékos szélesség */
-    height: 100%; /* Magasság kitöltése */
+    margin: 10px;
+    width: 55%;
+    height: 100%;
 }
 
 /* Bal oldali input mezők stílusa (pl. sorszám input) */
 .left-column-input {
-    width: 85%; /* Specifikus szélesség */
-    margin: 10px; /* Specifikus margin */
+    width: 85%;
+    margin: 10px;
     flex: none;
-    font-size: 15px; /* Ha nem általános input stílus */
+    font-size: 15px;
 }
 
 /* Nyomtatás gomb stílusa */
@@ -94,7 +92,7 @@
 /* Adatmegjelenítő terület (jobb oszlop alján) */
 .data-display-area {
     width: 100%;
-    height: 100%; /* Kitölti a rendelkezésre álló helyet */
+    height: 100%;
 }
 
 /* Hibaüzenet sor (alul) */
@@ -110,5 +108,45 @@
     border: 1px solid yellow;
     border-radius: 6px;
     padding: 8px;
-    background-color: #333; /* Vagy más szín, ha eltér */
+    background-color: #333;
+}
+
+/* Jobb oldali sáv fő konténer */
+.right-sidebar {
+    width: 180px;
+    height: 100%;
+    flex-shrink: 0;
+    background-color: #333;
+    color: white;
+    gap: 0px;
+}
+
+/* Jobb oldali sáv belső oszlopa (tartalom konténer) */
+.sidebar-inner-column {
+    width: 96%;
+    margin-right: 10px;
+    gap: 0px;
+}
+
+/* Munkautasítás terület a sávon belül */
+.sidebar-instruction-area {
+    width: 100%;
+    height: calc(100vh - 210px);
+    margin: 10px;
+}
+
+/* Munkautasítás gombok (ha van rá specifikus stílus) */
+.instruction-button-wide {
+    width: 120px;
+    margin-bottom: 0px;
+}
+
+/* Óra kijelző stílusa */
+.clock-text {
+    font-size: 25px;
+}
+
+/* Uptime kijelző stílusa */
+.uptime-text {
+    font-size: 12px;
 }

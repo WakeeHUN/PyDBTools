@@ -63,57 +63,52 @@ with ui.footer().classes('app-footer'):
     ui.label(STATION_DATA["host_name"])
 
 # Fő tartalom a fejléc és lábléc nélkül
-with ui.row().style('width: 100%; height: calc(100vh - 125px);'): 
+with ui.row().style('width: 100%; height: calc(100vh - 130px);'): 
     # Fő tartalom
     with ui.column() \
-        .classes('main-content-container') \
-        .style('width: calc(100vh - 180px);'):
-        with ui.column().classes('content-inner-column') \
-            .style('flex-grow: 1; height: calc(100vh - 182px);'):
-                with ui.row().classes('main-layout-row') \
-                        .style('height: calc(100vh - 182px);') as main_area:
+        .classes('main-content-container'):
+        with ui.column().classes('content-inner-column'):
+            with ui.row().classes('main-layout-row'):
+                
+                with ui.column().classes('left-column') as left_column:
+                    ser_nr_input = ui.input(placeholder='Nutzen sorszám...') \
+                        .classes('left-column-input') \
+                        .props('outlined dense')
+                    print_button = ui.button('Nyomtatás', icon='print') \
+                        .classes('print-button') \
+                        .props('push')
                     
-                    with ui.column().classes('left-column') as left_column:
-                        ser_nr_input = ui.input(placeholder='Nutzen sorszám...') \
-                            .classes('left-column-input') \
-                            .props('outlined dense')
-                        print_button = ui.button('Nyomtatás', icon='print') \
-                            .classes('print-button') \
-                            .props('push')
-                        
-                    with ui.column().classes('right-column') as right_column:
-                        with ui.row():
-                            ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')) \
-                                .props(ep.TOOL_BUTTON_PROPS)
-                            ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')) \
-                                .props(ep.TOOL_BUTTON_PROPS)
-                            ui.button(icon='edit_note', on_click=lambda: display_label_file(IND_LABEL_DATA, data_area)) \
-                                .props(ep.TOOL_BUTTON_PROPS)
-                        with ui.column().classes('data-display-area') as data_area:
-                            ui.label('')
-                # Alsó sor a hibaüzenetnek
-                with ui.row().classes('bottom-status-row'):
-                    error_label = ui.label('Hibaüzenet helye') \
-                        .classes('error-message-label')
-                    error_label.visible = False
+                with ui.column().classes('right-column') as right_column:
+                    with ui.row():
+                        ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')) \
+                            .props(ep.TOOL_BUTTON_PROPS)
+                        ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')) \
+                            .props(ep.TOOL_BUTTON_PROPS)
+                        ui.button(icon='edit_note', on_click=lambda: display_label_file(IND_LABEL_DATA, data_area)) \
+                            .props(ep.TOOL_BUTTON_PROPS)
+                    with ui.column().classes('data-display-area') as data_area:
+                        ui.label('')
+            # Alsó sor a hibaüzenetnek
+            with ui.row().classes('bottom-status-row'):
+                error_label = ui.label('Hibaüzenet helye') \
+                    .classes('error-message-label')
+                error_label.visible = False
 
     # Jobb oldali sáv
-    with ui.column().style('width: 180px; height: 100%; flex-shrink: 0; background-color: #333; color: white; gap: 0px;'):
-        # Ide jöhet az oldalsáv tartalma
-        with ui.column().style('width: 96%; margin-right: 10px; gap: 0px;'):
-            with ui.column().style('width: 100%; height: calc(100vh - 185px); margin: 10px') as wi_area:
+    with ui.column().classes('right-sidebar'):
+        with ui.column().classes('sidebar-inner-column'):
+            with ui.column().classes('sidebar-instruction-area') as wi_area:
                 ui.label('Munkautasítások')
                 with ui.row():
-                    ui.button('M-P-G-0022').style('width: 120px; margin-bottom: 0px').props('push dense')
-                    ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)).props('flat round color=primary dense')
-                with ui.row():
-                    ui.button('M-P-G-0022').style('width: 120px; margin-bottom: 0px').props('push dense')
-                    ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)).props('flat round color=primary dense')
-                with ui.row():
-                    ui.button('M-P-G-0022').style('width: 120px; margin-bottom: 0px').props('push dense')
-                    ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)).props('flat round color=primary dense')
-            clock_label = ui.label('12:14:25').classes('text-right w-full').style('font-size: 25px;')
-            uptime_label = ui.label('Uptime: 0d 0h 00m').classes('text-right w-full').style('font-size: 12px')
+                    ui.button('M-P-G-0022') \
+                        .classes('instruction-button-wide') \
+                        .props(ep.WI_BUTTON_PROPS)
+                    ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)) \
+                        .props(ep.WIHISTORY_BUTTON_PROPS)
+            clock_label = ui.label('12:14:25') \
+                .classes('text-right w-full clock-text')
+            uptime_label = ui.label('Uptime: 0d 0h 00m') \
+                .classes('text-right w-full uptime-text')
 
 # Az aktuális idő kiírása
 def update_clock():
