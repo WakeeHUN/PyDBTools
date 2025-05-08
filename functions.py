@@ -4,6 +4,7 @@ import socket
 import uuid
 import datasource as ds
 import fitz
+import psutil
 
 
 def log_to_file(event: str, logdir: str):
@@ -53,6 +54,35 @@ def pdf_to_images(pdf_path, output_dir="images"):
         image_paths.append(output_file)
     doc.close()
     return image_paths
+
+
+def get_windows_uptime():
+    """
+    Lekéri a Windows rendszer uptime idejét a psutil segítségével.
+
+    Visszatérési érték: timedelta objektum az uptime-mal.
+    """
+    try:
+        # Rendszer indításának ideje timestamp-ként
+        boot_timestamp = psutil.boot_time()
+        # Átváltjuk datetime objektummá
+        boot_time = datetime.fromtimestamp(boot_timestamp)
+        # Aktuális idő
+        current_time = datetime.now()
+        # Uptime kiszámítása
+        uptime = current_time - boot_time
+
+        total_seconds = int(uptime.total_seconds())
+        days = total_seconds // (24 * 3600)
+        hours = (total_seconds % (24 * 3600)) // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+
+        return {'days':days, 'hours':hours, 'minutes':minutes, 'seconds':seconds}
+
+    except Exception as e:
+        print(f"Hiba az uptime lekérésekor: {e}")
+        return None
 
         
 def get_station_data():

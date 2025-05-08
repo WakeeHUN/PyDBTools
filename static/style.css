@@ -22,23 +22,27 @@
     margin-right: 10px;
 }
 
-.header-select-program { /* Az első select */
+/* Az első select */
+.header-select-program { 
     width: 250px;
     flex: none;
 }
 
-.header-input-user { /* A felhasználó input */
+/* A felhasználó input */
+.header-input-user { 
     width: 150px;
     flex: auto;
     text-align: center;
 }
 
-.header-input-po { /* A PO input */
+/* A PO input */
+.header-input-po { 
     width: 150px;
     flex: none;
 }
 
-.header-select-type { /* Az utolsó select */
+/* Az utolsó select */
+.header-select-type { 
      width: 300px;
      flex: auto;
 }
@@ -46,9 +50,9 @@
 /* Fő tartalom konténer */
 .main-content-container {
     flex-grow: 1;
-    background-color: #333; /* Ha az egész tartalomnak ilyen háttere van */
-    color: white; /* Ha az egész tartalomnak ilyen a betűszíne */
-    height: 100%; /* Vagy fix magasság, ha nem a flex-grow adja */
+    background-color: #333;
+    color: white;
+    height: 100%;
     width: calc(100vh - 180px);
 }
 
@@ -60,7 +64,7 @@
 /* Fő elrendezés sor (bal/jobb oszlopokhoz) */
 .main-layout-row {
      width: 100%;
-     height: calc(100vh - 182px);
+     height: calc(100vh - 190px);
 }
 
 /* Bal oldali oszlop stílusa */
@@ -105,8 +109,8 @@
 
 /* Hibaüzenet label stílusa */
 .error-message-label {
-    border: 1px solid yellow;
-    border-radius: 6px;
+    border: 2px solid yellow;
+    border-radius: 8px;
     padding: 8px;
     background-color: #333;
 }

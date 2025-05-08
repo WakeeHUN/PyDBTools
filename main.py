@@ -34,6 +34,8 @@ EO_TYPES = ['--- Válassz típust ---',
 def print_sn():
     os.system('copy /b cimke.zpl "\\\\localhost\\ZDesignerGK420t"')
 
+
+
 # Header
 with ui.header().classes('app-header'): 
     ui.select(['ENOCEAN_LABELING',], value='ENOCEAN_LABELING') \
@@ -114,6 +116,12 @@ with ui.row().style('width: 100%; height: calc(100vh - 130px);'):
 def update_clock():
     current_time = time.strftime('%H:%M:%S')
     clock_label.text = current_time
+
+    uptime = fn.get_windows_uptime()
+    if uptime:
+        uptime_label.text = f"Uptime: {uptime['days']}d {uptime['hours']}h {uptime['minutes']}m"
+    else:
+        uptime_label.text = "Uptime: -"
 
 # Kiválasztott termék adatainak kilistázása
 def display_db_data(data_source: dict, target_area, icon, caption):
