@@ -59,18 +59,11 @@ def pdf_to_images(pdf_path, output_dir="images"):
 def get_windows_uptime():
     """
     Lekéri a Windows rendszer uptime idejét a psutil segítségével.
-
     Visszatérési érték: timedelta objektum az uptime-mal.
     """
     try:
-        # Rendszer indításának ideje timestamp-ként
-        boot_timestamp = psutil.boot_time()
-        # Átváltjuk datetime objektummá
-        boot_time = datetime.fromtimestamp(boot_timestamp)
-        # Aktuális idő
-        current_time = datetime.now()
-        # Uptime kiszámítása
-        uptime = current_time - boot_time
+        boot_time = datetime.fromtimestamp(psutil.boot_time())
+        uptime = datetime.now() - boot_time
 
         total_seconds = int(uptime.total_seconds())
         days = total_seconds // (24 * 3600)

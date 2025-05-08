@@ -27,13 +27,12 @@ USER_DATA = fn.get_user_data('-')
 TYPE_DATA = fn.get_type_data('-')
 IND_LABEL_DATA = fn.get_label_data('-', 1)
 
-EO_TYPES = ['--- Válassz típust ---', 
-            '10000323 - TCM615 CA', 
+EO_TYPES = ['10000323 - TCM615 CA', 
             '13603089-01 - TCM515U']
+            
 
 def print_sn():
     os.system('copy /b cimke.zpl "\\\\localhost\\ZDesignerGK420t"')
-
 
 
 # Header
@@ -52,9 +51,9 @@ with ui.header().classes('app-header'):
         .classes('header-element header-input-po') \
         .props(ep.HEADER_INPUT_PROPS)
     
-    ui.select(EO_TYPES, value=EO_TYPES[0], on_change=lambda e: type_change(e)) \
+    type_select = ui.select(EO_TYPES, value=None, on_change=lambda e: type_change(e)) \
         .classes('header-element header-select-type') \
-        .props(ep.HEADER_INPUT_PROPS)
+        .props(ep.HEADER_TYPESELECT_PROPS)
 
 # Footer
 with ui.footer().classes('app-footer'):
@@ -107,7 +106,7 @@ with ui.row().style('width: 100%; height: calc(100vh - 130px);'):
                         .props(ep.WI_BUTTON_PROPS)
                     ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)) \
                         .props(ep.WIHISTORY_BUTTON_PROPS)
-            clock_label = ui.label('12:14:25') \
+            clock_label = ui.label('00:00:00') \
                 .classes('text-right w-full clock-text')
             uptime_label = ui.label('Uptime: 0d 0h 00m') \
                 .classes('text-right w-full uptime-text')
@@ -169,8 +168,8 @@ dialog = ui.dialog().style('widt: 100%').props('backdrop-filter="blur(8px) brigh
 def show_pdf(target_area):
     ser_nr_input.visible=False
     print_button.visible=False
-    left_column.style('flex: none; width: 0%;')
-    right_column.style('flex: none; width: 100%;')
+    left_column.style('width: 0%;')
+    right_column.style('width: 100%;')
 
     target_area.clear()
     with target_area:
@@ -182,8 +181,8 @@ def show_pdf(target_area):
 def close_pdf():
     ser_nr_input.visible=True
     print_button.visible=True
-    left_column.style('flex: none; width: 40%;')
-    right_column.style('flex: none; width: 55%;')
+    left_column.style('width: 40%;')
+    right_column.style('width: 55%;')
 
     display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')
 
@@ -226,13 +225,13 @@ def proc_prod_barcode(prod_bc: str):
 # Típusváltás
 def type_change(selected_type):
     global TYPE_DATA, IND_LABEL_DATA
-    if selected_type.value != '--- Válassz típust ---':
-        type_code = selected_type.value.split(' - ')[0]
-        TYPE_DATA = fn.get_type_data(type_code)
-        if TYPE_DATA['id'] > 0:
-            IND_LABEL_DATA = fn.get_label_data(TYPE_DATA['id'], 1)
-            fn.log_to_file(f"Type selected: {selected_type.value} ({TYPE_DATA["id"]})", LOG_DIR)
-            display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')
+    type_select.props(remove='label')
+    type_code = selected_type.value.split(' - ')[0]
+    TYPE_DATA = fn.get_type_data(type_code)
+    if TYPE_DATA['id'] > 0:
+        IND_LABEL_DATA = fn.get_label_data(TYPE_DATA['id'], 1)
+        fn.log_to_file(f"Type selected: {selected_type.value} ({TYPE_DATA["id"]})", LOG_DIR)
+        display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')
 
 # GUI frissítő: lekérdezi a queue-t és kinyeri a vonalkód tartalmat
 def update_gui():
