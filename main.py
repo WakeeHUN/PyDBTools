@@ -5,7 +5,9 @@ import time
 import serial
 import queue
 import os
+from dataclasses import is_dataclass, asdict
 import functions as fn
+import db_functions as db
 import element_props as ep
 
 app.add_static_files('/static', 'static')
@@ -23,9 +25,9 @@ fn.log_to_file(f"IP: {STATION_DATA["ip"]}; MAC: {STATION_DATA["mac"]}", LOG_DIR)
 SERIALPORT_DATA = fn.load_settings('settings.ini', 'SERIALPORT_DATA')
 SERIALPORT_DATA["data_queue"] = queue.Queue()
 
-USER_DATA = fn.get_user_data('-')
-TYPE_DATA = fn.get_type_data('-')
-IND_LABEL_DATA = fn.get_label_data('-', 1)
+USER_DATA = db.get_user_data('-')
+TYPE_DATA = db.get_type_data('-')
+IND_LABEL_DATA = db.get_label_data(-1, 1)
 
 EO_TYPES = ['10000323 - TCM615 CA', 
             '13603089-01 - TCM515U']
@@ -123,21 +125,37 @@ def update_clock():
         uptime_label.text = "Uptime: -"
 
 # Kiválasztott termék adatainak kilistázása
-def display_db_data(data_source: dict, target_area, icon, caption):
+def display_db_data(data_source, target_area, icon, caption):
     target_area.clear()
     with target_area:
         with ui.row().style('font-size: 20px'):
             ui.icon(icon)
             ui.label(caption)
-        for key, value in data_source.items():
+
+        data_to_display = {}
+
+        # Ellenőrizzük, hogy a bejövő adat dataclass-e
+        if is_dataclass(data_source):
+            # Ha dataclass, alakítsuk át dictionary-vé
+            data_to_display = asdict(data_source)
+        elif isinstance(data_source, dict):
+            # Ha már eleve dictionary, használjuk azt
+            data_to_display = data_source
+        else:
+            # Ha sem dictionary, sem dataclass, jelezzünk hibát vagy térjünk vissza
+            print(f"Warning: display_db_data unexpected data type: {type(data_source)}")
+            return # Megállítjuk a függvény futását
+
+        for key, value in data_to_display.items():
             with ui.row().classes('items-center').style('gap: 12px;'):
                 ui.label(f'{key}:').style('font-weight: bold; min-width: 100px;')
                 ui.label(str(value))
 
 # ZPL szerkesztő megjelenítése
-def display_label_file(data_source: dict, target_area):
+def display_label_file(label_data, target_area):
+    global IND_LABEL_DATA
     target_area.clear()
-    fila_name = rf"{ZPL_DIR}\{IND_LABEL_DATA['label_file']}"
+    fila_name = rf"{ZPL_DIR}\{label_data.label_file}"
     with target_area:
         with ui.row().style('font-size: 20px'):
             ui.icon('edit_note')
@@ -210,15 +228,16 @@ def proc_serial_data(serial_data: str):
 
 # User vonalkód feldolgozása
 def proc_user_barcode(user_bc: str):
-    USER_DATA = fn.get_user_data(user_bc)
-    if USER_DATA['id'] > 0:
-        input_user_name.value = USER_DATA['name']
-        fn.log_to_file(f"User logged in: {USER_DATA['name']} ({USER_DATA['id']})", LOG_DIR)
+    global USER_DATA
+    USER_DATA = db.get_user_data(user_bc)
+    if USER_DATA.id > 0:
+        input_user_name.value = USER_DATA.name
+        fn.log_to_file(f"User logged in: {USER_DATA.name} ({USER_DATA.id})", LOG_DIR)
 
 # Termék vonalkód feldolgozása
 def proc_prod_barcode(prod_bc: str):
     ser_nr_input.value = prod_bc
-    if prod_bc[1:4] != TYPE_DATA['log_nr']:
+    if prod_bc[1:4] != TYPE_DATA.log_nr:
         error_label.text = 'E101 - Log szám eltérés!'
         error_label.visible = True
 
@@ -227,10 +246,10 @@ def type_change(selected_type):
     global TYPE_DATA, IND_LABEL_DATA
     type_select.props(remove='label')
     type_code = selected_type.value.split(' - ')[0]
-    TYPE_DATA = fn.get_type_data(type_code)
-    if TYPE_DATA['id'] > 0:
-        IND_LABEL_DATA = fn.get_label_data(TYPE_DATA['id'], 1)
-        fn.log_to_file(f"Type selected: {selected_type.value} ({TYPE_DATA["id"]})", LOG_DIR)
+    TYPE_DATA = db.get_type_data(type_code)
+    if TYPE_DATA.id > 0:
+        IND_LABEL_DATA = db.get_label_data(TYPE_DATA.id, 1)
+        fn.log_to_file(f"Type selected: {selected_type.value} ({TYPE_DATA.id})", LOG_DIR)
         display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')
 
 # GUI frissítő: lekérdezi a queue-t és kinyeri a vonalkód tartalmat

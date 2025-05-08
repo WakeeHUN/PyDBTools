@@ -22,16 +22,17 @@ def execute_select_query(query, params=None, fetchone=False):
     except mysql.connector.Error as err:
         print(f"Hiba az adatbázis művelet során: {err}")
         return None
-
-def get_user_datas(prime_nr):
-    query = "SELECT userId, userName, language, roleId FROM users WHERE primeNr = %s"
-    result = execute_select_query(query, (prime_nr,), fetchone=True)
-    return result
-
+    
+    
 def get_users():
     query = "SELECT userId, userName, primeNr FROM users WHERE userStatus = %s"
     results = execute_select_query(query, (True,))
     return results
+    
+def get_user_datas(prime_nr):
+    query = "SELECT userId, userName, language, roleId FROM users WHERE primeNr = %s"
+    result = execute_select_query(query, (prime_nr,), fetchone=True)
+    return result
 
 def get_type_datas(type_code):
     query = "SELECT productId, productName, logNr FROM products WHERE productCode = %s"
