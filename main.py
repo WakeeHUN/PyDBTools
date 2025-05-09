@@ -34,6 +34,8 @@ PRINTER_DATA = fn.load_settings('settings.ini', 'PRINTER_DATA')
 USER_DATA = db.get_user_data('-')
 TYPE_DATA = db.get_type_data('-')
 IND_LABEL_DATA = db.get_label_data(-1, 1)
+WORK_INSTRUCTIONS = db.get_work_instructions(2663, 23)
+print(WORK_INSTRUCTIONS)
 
 EO_TYPES = ['10000323 - TCM615 CA', 
             '13603089-01 - TCM515U']

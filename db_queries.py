@@ -41,5 +41,16 @@ def get_type_datas(type_code):
 def get_label_datas(product_id, entry_nr):
     query = "SELECT lastSn, hwswIndex, bomNr, labelCode, foilType, labelFile, snFormat, \
              snResetType, copies FROM labels WHERE productId = %s AND entryNr = %s"
-    result = execute_select_query(query, (product_id, entry_nr), fetchone=True)
+    result = execute_select_query(query, (product_id, entry_nr,), fetchone=True)
     return result
+
+def get_product_wi_ids(product_id, work_group):
+    query = "SELECT work_instruction_product.work_instruction_id, work_instruction_product.station_list \
+             FROM work_instruction_product INNER JOIN work_instructions ON \
+             work_instruction_product.work_instruction_id = work_instructions.work_instruction_id \
+             WHERE (((work_instruction_product.product_id) = %s) AND ((work_instruction_product.work_center) = %s) \
+             AND ((work_instructions.folder) <> 'R') AND ((work_instructions.active) IS TRUE) \
+             AND ((work_instruction_product.line_config) IS NULL) )"
+    result = execute_select_query(query, (product_id, work_group,))
+    return result
+    
