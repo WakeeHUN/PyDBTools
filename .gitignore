@@ -1,0 +1,6 @@
+# Build artifacts from PyInstaller
+dist/
+build/
+main.dist/
+main.build/
+__pycache__

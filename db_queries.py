@@ -9,7 +9,6 @@ DB_CONFIG = {
     "database": os.environ.get("DB_DATABASE", "traceability")
 }
 
-
 def execute_select_query(query, params=None, fetchone=False):
     try:
         with mysql.connector.connect(**DB_CONFIG) as mydb:
@@ -23,7 +22,7 @@ def execute_select_query(query, params=None, fetchone=False):
         print(f"Hiba az adatbázis művelet során: {err}")
         return None
     
-    
+
 def get_users():
     query = "SELECT userId, userName, primeNr FROM users WHERE userStatus = %s"
     results = execute_select_query(query, (True,))

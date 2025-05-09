@@ -1,12 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_all
+
+datas = [('D:\\Dev\\PyDBTools\\static', '.')]
+binaries = [('C:\\Users\\vargat\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\libmysql.dll', '.')]
+hiddenimports = []
+tmp_ret = collect_all('nicegui')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=[],
-    datas=[('static', 'static'), ('C:\\Users\\vargat\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\nicegui\\static', 'nicegui/static'), ('C:\\Users\\vargat\\AppData\\Local\\Programs\\Python\\Python313\\Lib\\site-packages\\nicegui\\templates', 'nicegui/templates')],
-    hiddenimports=[],
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -19,20 +26,26 @@ pyz = PYZ(a.pure)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='main',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+)
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='main',
 )

@@ -4,14 +4,15 @@ import webview
 import time
 import serial
 import queue
-import os
 from dataclasses import is_dataclass, asdict
 import functions as fn
 import db_functions as db
 import element_props as ep
+import print_usb
+import print_tcp
 
 app.add_static_files('/static', 'static')
-app.add_static_files('/pdf', 'D:/Temp')
+app.add_static_files('/pdf', '//srv14-fs01/office/Quality/ISO_TS dokumentacio/Valid_Digital')
 
 # A külső CSS fájl belinkelése
 ui.add_head_html(f'<link rel="stylesheet" href="/static/style.css?{int(time.time())}">')
@@ -25,6 +26,8 @@ fn.log_to_file(f"IP: {STATION_DATA["ip"]}; MAC: {STATION_DATA["mac"]}", LOG_DIR)
 SERIALPORT_DATA = fn.load_settings('settings.ini', 'SERIALPORT_DATA')
 SERIALPORT_DATA["data_queue"] = queue.Queue()
 
+PRINTER_DATA = fn.load_settings('settings.ini', 'PRINTER_DATA')
+
 USER_DATA = db.get_user_data('-')
 TYPE_DATA = db.get_type_data('-')
 IND_LABEL_DATA = db.get_label_data(-1, 1)
@@ -34,8 +37,12 @@ EO_TYPES = ['10000323 - TCM615 CA',
             
 
 def print_sn():
-    os.system('copy /b cimke.zpl "\\\\localhost\\ZDesignerGK420t"')
-
+    if PRINTER_DATA["port"] == "USB":
+        print_usb.send_zpl_to_usb_printer_windows(PRINTER_DATA['name'], "cimke.zpl")
+    elif PRINTER_DATA["port"] == "TCP":
+        print_tcp.send_zpl_to_zebra_network_printer(PRINTER_DATA["ip"], 9100, "cimke.zpl")
+    else:
+        print("Printer config error")
 
 # Header
 with ui.header().classes('app-header'): 
@@ -77,22 +84,22 @@ with ui.row().style('width: 100%; height: calc(100vh - 130px);'):
                     ser_nr_input = ui.input(placeholder='Nutzen sorszám...') \
                         .classes('left-column-input') \
                         .props('outlined dense')
-                    print_button = ui.button('Nyomtatás', icon='print') \
+                    print_button = ui.button('Nyomtatás', icon='print', on_click=lambda: print_sn()) \
                         .classes('print-button') \
                         .props('push')
                     
                 with ui.column().classes('right-column') as right_column:
-                    with ui.row():
-                        ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')) \
+                    with ui.row().classes('tool_buttons') as tool_bar:
+                        tool_button_1 = ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')) \
                             .props(ep.TOOL_BUTTON_PROPS)
-                        ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')) \
+                        tool_button_2 = ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')) \
                             .props(ep.TOOL_BUTTON_PROPS)
-                        ui.button(icon='edit_note', on_click=lambda: display_label_file(IND_LABEL_DATA, data_area)) \
+                        tool_button_3 = ui.button(icon='edit_note', on_click=lambda: display_label_file(IND_LABEL_DATA, data_area)) \
                             .props(ep.TOOL_BUTTON_PROPS)
                     with ui.column().classes('data-display-area') as data_area:
                         ui.label('')
             # Alsó sor a hibaüzenetnek
-            with ui.row().classes('bottom-status-row'):
+            with ui.row().classes('bottom-status-row') as error_row:
                 error_label = ui.label('Hibaüzenet helye') \
                     .classes('error-message-label')
                 error_label.visible = False
@@ -103,7 +110,7 @@ with ui.row().style('width: 100%; height: calc(100vh - 130px);'):
             with ui.column().classes('sidebar-instruction-area') as wi_area:
                 ui.label('Munkautasítások')
                 with ui.row():
-                    ui.button('M-P-G-0022') \
+                    ui.button('M-P-G-0022', on_click=lambda: dialog.open()) \
                         .classes('instruction-button-wide') \
                         .props(ep.WI_BUTTON_PROPS)
                     ui.button(icon='edit_note', on_click=lambda: show_pdf(data_area)) \
@@ -182,23 +189,42 @@ def save_file(file_path: str, new_text):
         f.write(new_text.value)
     ui.notify('Mentve!')
 
-dialog = ui.dialog().style('widt: 100%').props('backdrop-filter="blur(8px) brightness(40%)"')
+dialog = ui.dialog()
+dialog.props('full-screen')
+with dialog:
+    with ui.card().classes('w-full h-full'):
+        with ui.column().classes('w-full h-full items-center'):
+            ui.html('''
+                <iframe src="/pdf/test.pdf#toolbar=0" width="100%" height="100%" style="border: none;"></iframe>
+                ''').style('width: 100%; height: 100%')
+            ui.button('Bezár', on_click=lambda: close_pdf()).classes('w-full')
+
+# Munkauti PDF megjelenítése
 def show_pdf(target_area):
-    ser_nr_input.visible=False
-    print_button.visible=False
+    error_label.visible = False
+    error_row.style('height: 0px')
+
+    ser_nr_input.visible = False
+    print_button.visible = False
     left_column.style('width: 0%;')
     right_column.style('width: 100%;')
+
+    tool_button_1.visible = False
+    tool_button_2.visible = False
+    tool_button_3.visible = False
+    tool_bar.style('height: 0px')
 
     target_area.clear()
     with target_area:
         ui.html('''
-            <iframe src="/pdf/test.pdf#toolbar=0" width="100%" height="100%" style="border: none;"></iframe>
+            <iframe src="/pdf/M-L-0011 Kiszállítás_rev01.pdf#toolbar=0" width="100%" height="100%" style="border: none;"></iframe>
             ''').style('width: 100%; height: 100%')
         ui.button('Bezár', on_click=lambda: close_pdf()).classes('w-full')
 
+# PDF bezárása
 def close_pdf():
-    ser_nr_input.visible=True
-    print_button.visible=True
+    ser_nr_input.visible = True
+    print_button.visible = True
     left_column.style('width: 40%;')
     right_column.style('width: 55%;')
 

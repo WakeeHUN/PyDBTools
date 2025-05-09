@@ -74,9 +74,14 @@
 
 /* Jobb oldali oszlop stílusa */
 .right-column {
-    margin: 10px;
+    margin: 0px;
     width: 55%;
     height: 100%;
+}
+
+/* Gombsor stílusa */
+.tool_buttons {
+    margin: 5px
 }
 
 /* Bal oldali input mezők stílusa (pl. sorszám input) */
@@ -95,6 +100,7 @@
 
 /* Adatmegjelenítő terület (jobb oszlop alján) */
 .data-display-area {
+    margin: 0px;
     width: 100%;
     height: 100%;
 }
