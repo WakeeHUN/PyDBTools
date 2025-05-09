@@ -16,7 +16,10 @@ app.add_static_files('/pdf', '//srv14-fs01/office/Quality/ISO_TS dokumentacio/Va
 
 # A külső CSS fájl belinkelése
 ui.add_head_html(f'<link rel="stylesheet" href="/static/style.css?{int(time.time())}">')
+ui.add_head_html('<link rel="icon" type="image/x-icon" href="/static/Barcode.ico">')
 
+COMPANY_NAME = "Katek Hungary Kft."
+PROGRAM_VERSION = '1.0.1'
 STATION_DATA = fn.get_station_data()
 
 LOG_DIR = r'\\srv14-fs01\production\traceability\marking\ManualLabeling\Programs\Labeling\Log'
@@ -73,36 +76,34 @@ with ui.footer().classes('app-footer'):
     ui.label(STATION_DATA["host_name"])
 
 # Fő tartalom a fejléc és lábléc nélkül
-with ui.row().style('width: 100%; height: calc(100vh - 130px);'): 
+with ui.row().style('width: 100%; height: calc(100vh - 130px)'): 
     # Fő tartalom
-    with ui.column() \
-        .classes('main-content-container'):
-        with ui.column().classes('content-inner-column'):
-            with ui.row().classes('main-layout-row'):
-                
-                with ui.column().classes('left-column') as left_column:
-                    ser_nr_input = ui.input(placeholder='Nutzen sorszám...') \
-                        .classes('left-column-input') \
-                        .props('outlined dense')
-                    print_button = ui.button('Nyomtatás', icon='print', on_click=lambda: print_sn()) \
-                        .classes('print-button') \
-                        .props('push')
-                    
-                with ui.column().classes('right-column') as right_column:
-                    with ui.row().classes('tool_buttons') as tool_bar:
-                        tool_button_1 = ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')) \
-                            .props(ep.TOOL_BUTTON_PROPS)
-                        tool_button_2 = ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')) \
-                            .props(ep.TOOL_BUTTON_PROPS)
-                        tool_button_3 = ui.button(icon='edit_note', on_click=lambda: display_label_file(IND_LABEL_DATA, data_area)) \
-                            .props(ep.TOOL_BUTTON_PROPS)
-                    with ui.column().classes('data-display-area') as data_area:
-                        ui.label('')
-            # Alsó sor a hibaüzenetnek
-            with ui.row().classes('bottom-status-row') as error_row:
-                error_label = ui.label('Hibaüzenet helye') \
-                    .classes('error-message-label')
-                error_label.visible = False
+    with ui.column().classes('main-content-container'):
+        with ui.row().classes('main-layout-row') as data_row:  
+            # Left column:
+            with ui.column().classes('left-column') as left_column:
+                ser_nr_input = ui.input(placeholder='Nutzen sorszám...') \
+                    .classes('left-column-input') \
+                    .props('outlined dense')
+                print_button = ui.button('Nyomtatás', icon='print', on_click=lambda: print_sn()) \
+                    .classes('print-button') \
+                    .props('push')
+            # Right column:
+            with ui.column().classes('right-column') as right_column:
+                with ui.row().classes('tool_buttons') as tool_bar:
+                    tool_button_1 = ui.button(icon='description', on_click=lambda: display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')) \
+                        .props(ep.TOOL_BUTTON_PROPS)
+                    tool_button_2 = ui.button(icon='view_kanban', on_click=lambda: display_db_data(IND_LABEL_DATA, data_area, 'view_kanban', 'Címke adatok')) \
+                        .props(ep.TOOL_BUTTON_PROPS)
+                    tool_button_3 = ui.button(icon='edit_note', on_click=lambda: display_label_file(IND_LABEL_DATA, data_area)) \
+                        .props(ep.TOOL_BUTTON_PROPS)
+                with ui.column().classes('data-display-area') as data_area:
+                    ui.label('')
+        # Alsó sor a hibaüzenetnek
+        with ui.row().classes('bottom-status-row') as error_row:
+            error_label = ui.label('Hibaüzenet helye') \
+                .classes('error-message-label')
+            error_label.visible = False
 
     # Jobb oldali sáv
     with ui.column().classes('right-sidebar'):
@@ -212,21 +213,33 @@ def show_pdf(target_area):
     tool_button_1.visible = False
     tool_button_2.visible = False
     tool_button_3.visible = False
-    tool_bar.style('height: 0px')
+    tool_bar.style('margin: 0px; height: 0px')
+
+    data_row.style('height: 100%')
 
     target_area.clear()
     with target_area:
         ui.html('''
             <iframe src="/pdf/M-L-0011 Kiszállítás_rev01.pdf#toolbar=0" width="100%" height="100%" style="border: none;"></iframe>
-            ''').style('width: 100%; height: 100%')
+            ''').style('width: 100%; height: 100%;')
         ui.button('Bezár', on_click=lambda: close_pdf()).classes('w-full')
 
 # PDF bezárása
 def close_pdf():
+    error_label.visible = True
+    error_row.style('height: 50px')
+
     ser_nr_input.visible = True
     print_button.visible = True
     left_column.style('width: 40%;')
-    right_column.style('width: 55%;')
+    right_column.style('width: 60%;')
+
+    tool_button_1.visible = True
+    tool_button_2.visible = True
+    tool_button_3.visible = True
+    tool_bar.style('margin: 10px; height: 50px')
+
+    data_row.style('height: calc(100vh - 160px)')
 
     display_db_data(TYPE_DATA, data_area, 'description', 'Típus adatok')
 
@@ -296,5 +309,8 @@ if __name__ == '__main__':
     threading.Thread(target=start_gui, daemon=True).start()
     threading.Thread(target=serial_reader, daemon=True).start()
     time.sleep(0.5)
-    webview.create_window('Labeling 2.0.0', 'http://127.0.0.1:8080', width=1200, height=710)
+    webview.create_window(f"Labeling {PROGRAM_VERSION} - {COMPANY_NAME}", 'http://127.0.0.1:8080', 
+                          width=1200, 
+                          height=710, 
+                          )
     webview.start()

@@ -50,38 +50,37 @@
 /* Fő tartalom konténer */
 .main-content-container {
     flex-grow: 1;
+    gap: 0;
     background-color: #333;
     color: white;
     height: 100%;
     width: calc(100vh - 185px);
 }
 
-/* Belső oszlopok a fő tartalom rendszerezéséhez */
-.content-inner-column {
-    width: 100%;
-}
-
 /* Fő elrendezés sor (bal/jobb oszlopokhoz) */
 .main-layout-row {
-     width: 100%;
-     height: calc(100vh - 190px);
+    gap: 0;
+    width: 100%;
+    height: calc(100vh - 160px);
 }
 
 /* Bal oldali oszlop stílusa */
 .left-column {
+    gap: 0;
     width: 40%;
 }
 
 /* Jobb oldali oszlop stílusa */
 .right-column {
-    margin: 0px;
-    width: 55%;
+    gap: 0;
+    width: 60%;
     height: 100%;
 }
 
 /* Gombsor stílusa */
 .tool_buttons {
-    margin: 5px
+    margin: 10px;
+    height: 50px;
 }
 
 /* Bal oldali input mezők stílusa (pl. sorszám input) */
@@ -100,7 +99,7 @@
 
 /* Adatmegjelenítő terület (jobb oszlop alján) */
 .data-display-area {
-    margin: 0px;
+    gap: 0;
     width: 100%;
     height: 100%;
 }
@@ -111,6 +110,7 @@
     justify-content: space-around;
     align-items: center;
     width: 100%;
+    height: 50px;
 }
 
 /* Hibaüzenet label stílusa */
@@ -118,7 +118,6 @@
     border: 2px solid yellow;
     border-radius: 8px;
     padding: 8px;
-    background-color: #333;
 }
 
 /* Jobb oldali sáv fő konténer */
