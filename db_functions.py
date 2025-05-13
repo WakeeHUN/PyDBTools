@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List
+import datetime
 import db_queries as ds
 import db_field_mappings as fm
 
@@ -36,21 +37,30 @@ class TypeData:
     code: str = ''
     name: str = ''
     log_nr: str = ''
+    cust_id: int = -1
+    tray_size: int = -1
+    box_size: int = -1
+    pallet_size: int = -1
+    active: bool = True
+    array_size: int = -1
+    array_dim: str = ''
+    base_type_id: int = -1
+    params: str = ''
 
-def get_type_data(product_code: str) -> TypeData:
+def get_type_data(product_id: int, station_group: int) -> TypeData:
     type_data = TypeData()
 
-    if product_code != '-':
-        sql_datas = ds.get_type_datas(product_code)
+    if product_id > 0:
+        sql_datas = ds.get_type_datas(product_id, station_group)
 
         if sql_datas:
             mapped_values = {}
-            for sql_key, field_name in fm.PRODUCT_DATA_MAP.items():
+            for sql_key, field_name in fm.TYPE_DATA_MAP.items():
                  if sql_key in sql_datas:
                      mapped_values[field_name] = sql_datas[sql_key]
 
             type_data = TypeData(**mapped_values)
-            type_data.code = product_code
+            type_data.id = product_id
 
     return type_data
 
@@ -96,7 +106,7 @@ class OrderData:
 def get_order_data(order_nr: str) -> OrderData:
     order_data = OrderData()
 
-    if order_nr:
+    if order_nr != '':
         sql_datas = ds.get_order_details(order_nr)
 
         if sql_datas:
@@ -109,6 +119,41 @@ def get_order_data(order_nr: str) -> OrderData:
             order_data.order_nr = order_nr
 
     return order_data
+
+# Product data:
+@dataclass
+class ProductData:
+    rec_nr: int = -1
+    ser_nr: str = ''
+    product_id: int = -1
+    last_station: int = -1
+    change_date: datetime.datetime = field(default_factory=datetime.datetime.now)
+    cust_sn: str = ''
+    dev_param: str = ''
+
+def get_product_data(ser_nr: str, product_id: int) -> ProductData:
+    product_data = ProductData()
+
+    if ser_nr != '':
+        sql_datas = ds.get_product_datas(ser_nr, product_id)
+
+        if sql_datas:
+            mapped_values = {}
+            for sql_key, field_name in fm.PRODUCT_DATA_MAP.items():
+                 if sql_key in sql_datas:
+                     mapped_values[field_name] = sql_datas[sql_key]
+
+            product_data = ProductData(**mapped_values)
+            product_data.ser_nr = ser_nr
+            product_data.product_id = product_id
+
+    return product_data
+
+def get_array_data(ser_nr: str, product_id: int):
+    if ser_nr != '':
+        sql_datas = ds.get_array_datas(ser_nr, product_id)
+
+    return sql_datas
 
 # Workinstructions:
 @dataclass

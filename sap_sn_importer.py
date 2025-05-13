@@ -55,7 +55,6 @@ def process_recent_files(archive_path, time_threshold, filename_pattern):
                     # st_ctime a létrehozás ideje Windows-on
                     creation_time = entry.stat().st_birthtime
                     file_age = current_time - creation_time # Fájl kora másodpercben
-                    print(file_age)
 
                     # Ellenőrizzük, hogy a fájl elég friss-e
                     if file_age <= time_threshold:
@@ -85,13 +84,18 @@ def process_recent_files(archive_path, time_threshold, filename_pattern):
                                                 serial_numbers.append(serial_number)
 
                                 logging.info(f"Fájl olvasása befejeződött: {entry}")
-                                print(order_number)
-                                print(serial_numbers)
                                 processed_files_count += 1
 
                                 # Adatbázis műveletek:
                                 order_data = db.get_order_data(order_number)
-                                print(order_data.product_id)
+
+                                # Megnézem, hogy létezik-e már a sorszám az adatbázisban
+                                array_data = db.get_array_data(serial_numbers[0], order_data.product_id)                            
+                                if not array_data:
+                                    type_data = db.get_type_data(order_data.product_id, 1)
+                                    product_data = db.get_product_data(serial_numbers[0], order_data.product_id)
+                                else:
+                                    print(array_data)
 
                         except Exception as file_read_err:
                             logging.error(f"Hiba a fájl olvasása vagy feldolgozása közben ({entry}): {file_read_err}", exc_info=True)

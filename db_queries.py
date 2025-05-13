@@ -33,9 +33,14 @@ def get_user_datas(prime_nr: str):
     result = execute_select_query(query, (prime_nr,), fetchone=True)
     return result
 
-def get_type_datas(type_code: str):
-    query = "SELECT productId, productName, logNr FROM products WHERE productCode = %s"
-    result = execute_select_query(query, (type_code,), fetchone=True)
+def get_type_datas(product_id: int, station_group: int):
+    query = "SELECT product_process_steps.product_code, products.productName, products.logNr, products.customerId, \
+             products.traySize, products.boxSize, products.palletSize, products.active, products.arraySize, \
+             products.arrayDimension, products.baseTypeId, products.params \
+             FROM product_process_steps INNER JOIN products ON product_process_steps.product_id = products.productId \
+             WHERE (((product_process_steps.station_group_id) = %s) \
+             AND ((product_process_steps.product_id) = %s))"
+    result = execute_select_query(query, (station_group, product_id, ), fetchone=True)
     return result
 
 def get_label_datas(product_id: int, entry_nr: int):
@@ -56,6 +61,12 @@ def get_product_datas(ser_nr: str, product_id: int):
     query = "SELECT recnrsernr.recNr, recnrsernr.lastStation, recnrsernr.changeDate, recnrsernr.customerSn, recnrsernr.devParam \
              FROM recnrsernr \
              WHERE (((recnrsernr.serNr) = %s) AND ((recnrsernr.productId) = %s))"
+    result = execute_select_query(query, (ser_nr, product_id, ), fetchone=True)
+    return result
+
+def get_array_datas(ser_nr: str, product_id: int):
+    query = "SELECT arrayId, createDate, changeDate, lastStation, unGrouped \
+             FROM arrayofpcba WHERE arraySerNr = %s AND arrayProductId = %s"
     result = execute_select_query(query, (ser_nr, product_id, ), fetchone=True)
     return result
 
