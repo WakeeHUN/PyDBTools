@@ -24,3 +24,19 @@ LABEL_DATA_MAP = {
     'snResetType': 'sn_reset',
     'copies'     : 'copies'
 }
+
+ORDER_DATA_MAP = {
+    'orderNr'          : 'order_nr',
+    'productId'        : 'product_id',
+    'orderType'        : 'order_type',
+    'quantity'         : 'quantity',
+    'matnr'            : 'mat_nr',
+    'station_group_id' : 'group_id'
+}
+
+WORK_INSTRUCTION_MAP = {
+    'work_instruction_id'   : 'id',
+    'station_list'          : 'station_list',
+    'work_instruction_name' : 'short_name',
+    'current_revision'      : 'rev'
+}

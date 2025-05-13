@@ -34,8 +34,11 @@ PRINTER_DATA = fn.load_settings('settings.ini', 'PRINTER_DATA')
 USER_DATA = db.get_user_data('-')
 TYPE_DATA = db.get_type_data('-')
 IND_LABEL_DATA = db.get_label_data(-1, 1)
-WORK_INSTRUCTIONS = db.get_work_instructions(2663, 23)
-print(WORK_INSTRUCTIONS)
+
+PRODUCT_WORK_INSTRUCTIONS = db.get_product_workinstructions(2663, 23, 1)
+print(PRODUCT_WORK_INSTRUCTIONS)
+GLOBAL_WORK_INSTRUCTIONS  = db.get_global_workinstructions(23, 1)
+print(GLOBAL_WORK_INSTRUCTIONS)
 
 EO_TYPES = ['10000323 - TCM615 CA', 
             '13603089-01 - TCM515U']
@@ -228,7 +231,6 @@ def show_pdf(target_area):
 
 # PDF bezárása
 def close_pdf():
-    error_label.visible = True
     error_row.style('height: 50px')
 
     ser_nr_input.visible = True
