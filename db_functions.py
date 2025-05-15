@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Type, TypeVar
+from typing import List, Dict, Any, Type, TypeVar, Optional
 import datetime
 import db_queries as ds
 import db_field_mappings as fm
@@ -226,4 +226,17 @@ def get_product_workinstructions(product_id: int, work_group: int, station_id: i
 def get_global_workinstructions(work_group: int, station_id: int):
     list_of_work_instructions_dicts = ds.get_global_wi_ids(work_group)
     return _get_work_instructions(list_of_work_instructions_dicts, station_id)
+
+def insert_array_of_pcba(serial_nr: str, product_id: int, last_station: int):
+    return ds.insert_array_of_pcba(serial_nr, product_id, last_station)
+
+def insert_rec_nr_ser_nr(product_id: int, serial_nr: str, customer_sn: str, dev_param: str, last_station: int, 
+                         box_id: Optional[int] = None, create_date: Optional[datetime.datetime] = None):
+    return ds.insert_rec_nr_ser_nr(product_id, serial_nr, customer_sn, dev_param, last_station, box_id, create_date)
+
+def insert_rec_nr_last_station(rec_nr: int, last_station: int, proc_state: bool, user_id: int, prod_order: str,
+                              change_date: Optional[datetime.datetime] = None):
+    return ds.insert_rec_nr_last_station(rec_nr, last_station, proc_state, user_id, prod_order, change_date)
     
+def insert_array_items(array_serial_nr: str, rec_nr: int, position: int, array_id: int):
+    return ds.insert_array_items(array_serial_nr, rec_nr, position, array_id)

@@ -1,5 +1,7 @@
 import mysql.connector
 import os
+from datetime import datetime
+from typing import Optional, Tuple
 
 
 DB_CONFIG = {
@@ -117,6 +119,7 @@ def _execute_modify_query(query, params=None):
         if conn and conn.is_connected():
             conn.close()  
 
+
 # SELECT ---
 def get_users():
     query = "SELECT userId, userName, primeNr FROM users WHERE userStatus = %s"
@@ -137,7 +140,7 @@ def get_type_datas(product_id: int, station_group: int):
     WHERE (((product_process_steps.station_group_id) = %s)
     AND ((product_process_steps.product_id) = %s))
     """
-    result = _execute_select_query(query, (station_group, product_id, ), fetchone=True)
+    result = _execute_select_query(query, (station_group, product_id), fetchone=True)
     return result
 
 def get_label_datas(product_id: int, entry_nr: int):
@@ -145,7 +148,7 @@ def get_label_datas(product_id: int, entry_nr: int):
     SELECT lastSn, hwswIndex, bomNr, labelCode, foilType, labelFile, snFormat,
     snResetType, copies FROM labels WHERE productId = %s AND entryNr = %s
     """
-    result = _execute_select_query(query, (product_id, entry_nr,), fetchone=True)
+    result = _execute_select_query(query, (product_id, entry_nr), fetchone=True)
     return result
 
 def get_order_details(order_nr: str):
@@ -155,7 +158,7 @@ def get_order_details(order_nr: str):
     FROM order_details
     WHERE (((order_details.orderNumber) = %s ))
     """
-    result = _execute_select_query(query, (order_nr, ), fetchone=True)
+    result = _execute_select_query(query, (order_nr,), fetchone=True)
     return result
 
 def get_product_datas(ser_nr: str, product_id: int):
@@ -164,7 +167,7 @@ def get_product_datas(ser_nr: str, product_id: int):
     FROM recnrsernr
     WHERE (((recnrsernr.serNr) = %s) AND ((recnrsernr.productId) = %s))
     """
-    result = _execute_select_query(query, (ser_nr, product_id, ), fetchone=True)
+    result = _execute_select_query(query, (ser_nr, product_id), fetchone=True)
     return result
 
 def get_array_datas(ser_nr: str, product_id: int):
@@ -172,7 +175,7 @@ def get_array_datas(ser_nr: str, product_id: int):
     SELECT arrayId, createDate, changeDate, lastStation, unGrouped
     FROM arrayofpcba WHERE arraySerNr = %s AND arrayProductId = %s
     """
-    result = _execute_select_query(query, (ser_nr, product_id, ), fetchone=True)
+    result = _execute_select_query(query, (ser_nr, product_id), fetchone=True)
     return result
 
 def get_product_wi_ids(product_id: int, work_group: int):
@@ -184,7 +187,7 @@ def get_product_wi_ids(product_id: int, work_group: int):
     AND ((work_instructions.folder) <> 'R') AND ((work_instructions.active) IS TRUE)
     AND ((work_instruction_product.line_config) IS NULL) )
     """
-    result = _execute_select_query(query, (product_id, work_group,))
+    result = _execute_select_query(query, (product_id, work_group))
     return result
 
 def get_global_wi_ids(work_group: int):
@@ -203,47 +206,56 @@ def get_wi_datas(workinstruction_id: int):
     FROM work_instructions
     WHERE ((work_instructions.work_instruction_id) = %s)
     """
-    result = _execute_select_query(query, (workinstruction_id, ), fetchone=True)
+    result = _execute_select_query(query, (workinstruction_id,), fetchone=True)
     return result
 
+
 # INSERT ---
-# --- Példa használat INSERT-re ---
+def insert_array_of_pcba(serial_nr: str, product_id: int, last_station: int) -> Tuple[bool, int]:
+    query = """
+    INSERT INTO arrayofpcba (arraySerNr, arrayProductId, createDate, lastStation, unGrouped)
+    VALUES (%s, %s, NOW(), %s, FALSE)
+    """
+    success, last_id = _execute_modify_query(query, (serial_nr, product_id, last_station))
+    return success, last_id
 
-# Feltételezve, hogy van egy táblád pl. 'serial_data'
-# oszlopok: id (auto-increment), order_number (INT), serial_number (VARCHAR), change_date (DATETIME)
+def insert_rec_nr_ser_nr(product_id: int, serial_nr: str, customer_sn: str, dev_param: str, last_station: int, 
+                         box_id: Optional[int] = None, create_date: Optional[datetime] = None) -> Tuple[bool, int]:
+    insert_into_part = "INSERT INTO recnrsernr"
+    insert_columns   = "productId, serNr, customerSn, devParam, lastStation, boxId, createDate, changeDate"
+    
+    if create_date is None:
+        values_part = f"VALUES ({', '.join(['%s'] * 6)}, NOW(), NOW())"
+        params = (product_id, serial_nr, customer_sn, dev_param, last_station, box_id)
+    else:
+        values_part = f"VALUES ({', '.join(['%s'] * 8)})"
+        params = (product_id, serial_nr, customer_sn, dev_param, last_station, box_id, create_date, create_date)
+    query = f"{insert_into_part} ({insert_columns}) {values_part}"
 
-# SQL utasítás az INSERT-hez. Fontos a %s használata a paraméterezéshez!
-# Több sor beszúrásához (pl. egy fájl összes sorozatszámához) a cursor.executemany() hatékonyabb
-INSERT_SERIAL_SQL = """
-INSERT INTO serial_data (order_number, serial_number, change_date)
-VALUES (%s, %s, %s)
-"""
+    success, last_id = _execute_modify_query(query, params)
+    return success, last_id
 
-# Adatok előkészítése (pl. a fájlfeldolgozásból nyert adatok)
-# Tételezzük fel, hogy a process_recent_files_and_extract_data függvényből kaptad ezt:
-sample_order_number = 1340417
-sample_serial_numbers = ['784901324181', '784901324182', '784901324183', '784901324184']
-processing_time = datetime.datetime.now() # Az aktuális idő, vagy amikor feldolgoztad a fájlt
+def insert_rec_nr_last_station(rec_nr: int, last_station: int, proc_state: bool, user_id: int, prod_order: str,
+                              change_date: Optional[datetime] = None) -> Tuple[bool, int]:
+    insert_into_part = "INSERT INTO recnrlaststation"
+    insert_columns   = "lastStation, procState, userId, recNr, prodOrder, changeDate"
 
-# Hogyan tudod ezt beírni az adatbázisba?
-# Minden sorozatszám egy külön sor lesz az adatbázisban, de ugyanazzal a megrendelés számmal és dátummal.
+    if change_date is None:
+        values_part = f"VALUES ({', '.join(['%s'] * 5)}, NOW())"
+        params = (last_station, proc_state, user_id, rec_nr, prod_order)
+    else:
+        values_part = f"VALUES ({', '.join(['%s'] * 6)})"
+        params = (last_station, proc_state, user_id, rec_nr, prod_order, change_date)
 
-# Készítsük elő az adatokat a cursor.executemany() számára (ajánlott több sor esetén)
-data_to_insert = []
-for ser_nr in sample_serial_numbers:
-    data_to_insert.append((sample_order_number, ser_nr, processing_time))
+    query = f"{insert_into_part} ({insert_columns}) {values_part}"
 
-# Most hívjuk meg a beszúró függvényt
-if data_to_insert: # Csak ha van adat
-     # A query a single INSERT SQL, az executemany fogja ismételni a data_to_insert minden elemére
-     success, affected_or_lastid = execute_insert_query(INSERT_SERIAL_SQL, data_to_insert)
+    success, last_id = _execute_modify_query(query, params)
+    return success, last_id
 
-     if success:
-         logging.info(f"Adatbázis INSERT művelet sikeres.")
-         # affected_or_lastid itt az érintett sorok száma (ami megegyezik len(data_to_insert)-tel executemany esetén)
-         logging.info(f"Érintett sorok száma: {affected_or_lastid}")
-
-     else:
-         logging.error("Adatbázis INSERT művelet sikertelen.")
-else:
-    logging.info("Nincs beszúrandó adat.")
+def insert_array_items(array_serial_nr: str, rec_nr: int, position: int, array_id: int) -> Tuple[bool, int]:
+    query = """
+    INSERT INTO arrayitems (arraySerNr, recNr, position, arrayId)
+    VALUES (%s, %s, %s, %s)
+    """
+    success, last_id = _execute_modify_query(query, (array_serial_nr, rec_nr, position, array_id))
+    return success, last_id
