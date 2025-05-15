@@ -6,7 +6,7 @@ import db_functions as db
 
 # --- Konfiguráció ---
 # A hálózati útvonal, ahol a fájlok vannak
-ARCHIVE_PATH = r"\\service-smt\applications\PrinterStation_Laser_KHU3\if_Laser_KHU3\vonstation\archive" # Használj raw stringet (r"...")!
+ARCHIVE_PATH = r"\\service-smt\applications\PrinterStation_Laser_KHU5\if_Laser_KHU5\vonstation\archive" # Használj raw stringet (r"...")!
 
 # Az idő küszöb másodpercben (5 másodpercnél nem régebbi)
 TIME_THRESHOLD_SECONDS = 60

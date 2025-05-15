@@ -32,7 +32,7 @@ SERIALPORT_DATA["data_queue"] = queue.Queue()
 PRINTER_DATA = fn.load_settings('settings.ini', 'PRINTER_DATA')
 
 USER_DATA = db.get_user_data('-')
-TYPE_DATA = db.get_type_data('-')
+TYPE_DATA = db.get_type_data(-1, -1)
 IND_LABEL_DATA = db.get_label_data(-1, 1)
 
 PRODUCT_WORK_INSTRUCTIONS = db.get_product_workinstructions(2663, 23, 1)

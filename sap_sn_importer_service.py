@@ -66,15 +66,8 @@ class MySimpleTimeService(win32serviceutil.ServiceFramework):
             current_time = time.strftime("%Y-%m-%d %H:%M:%S")
             log_message = f"Aktuális idő: {current_time}\n"
 
-            try:
-                # Fájl megnyitása hozzáfűzés módra ('a') és írás
-                # 'with' statement biztosítja, hogy a fájl be is záródjon
-                with open(WINDOWS_LOG_FILE, "a", encoding="utf-8") as f:
-                    f.write(log_message)
-                logging.info(f"Idő beírva a fájlba: {current_time}")
-            except Exception as e:
-                logging.error(f"Hiba a fájlba íráskor ({WINDOWS_LOG_FILE}): {e}")
-                # Ha hiba van az íráskor, leállíthatod a service-t, vagy próbálkozhatsz újra
+
+            
 
             # 2. Várj az adott ideig VAGY amíg a leállási jelzést megkapod
             # win32event.WaitForSingleObject blokkol addig, amíg az esemény jelzést nem kap,

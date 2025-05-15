@@ -1,8 +1,47 @@
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Dict, Any, Type, TypeVar
 import datetime
 import db_queries as ds
 import db_field_mappings as fm
+
+
+T_Dataclass = TypeVar('T_Dataclass', bound=dataclass)
+def _map_sql_data_to_dataclass(sql_data: Dict[str, Any], mapping_dict: Dict[str, str],
+                               dataclass_type: Type[T_Dataclass]) -> T_Dataclass:
+    """
+    Összerendeli az SQL eredmény dictionary kulcsait a dataclass mezőnevekkel
+    egy térképező dictionary alapján, és létrehoz egy dataclass példányt.
+
+    Args:
+        sql_data (Dict[str, Any]): A dictionary, ami a SQL lekérdezés eredményét tartalmazza
+                                   (pl. cursor(dictionary=True).fetchone() visszatérése).
+                                   Feltételezzük, hogy nem üres vagy None, amikor ezt a függvényt hívjuk.
+        mapping_dict (Dict[str, str]): A térképező dictionary, ahol a kulcsok a SQL oszlopnevek (string),
+                                       az értékek pedig a dataclass mezőnevek (string).
+        dataclass_type (Type[T_Dataclass]): A célszerinti dataclass típusa (pl. OrderData, ProductData).
+
+    Returns:
+        T_Dataclass: A megadott dataclass típusú példány, feltöltve a térképezett értékekkel.
+                     Ha az sql_data üres volt (bár a hívónak ezt ellenőriznie kellene),
+                     akkor egy alapértelmezett értékekkel rendelkező példányt ad vissza.
+    """
+    mapped_values = {}
+    
+    # Végigmegyünk a térképező dictionary elemein
+    for sql_key, field_name in mapping_dict.items():
+        # Ellenőrizzük, hogy az aktuális SQL oszlopnév (sql_key) létezik-e
+        # a kapott SQL eredmény dictionary-ben (sql_data)
+        if sql_key in sql_data:
+            # Ha létezik, átmásoljuk az értéket
+            mapped_values[field_name] = sql_data[sql_key]
+
+    # Létrehozzuk a dataclass példányt a gyűjtött értékekkel.
+    # A '**' operátor kicsomagolja a mapped_values dictionary-t kulcsszavas argumentumokként.
+    # Pl. OrderData(rec_nr=123, ser_nr='ABC', ...)
+    # Ha a mapped_values dictionary üres, akkor a dataclass az összes mezőhöz
+    # az alapértelmezett értéket fogja használni (ha meg van adva).
+    return dataclass_type(**mapped_values)
+
 
 # User data:
 @dataclass
@@ -13,19 +52,14 @@ class UserData:
     language: str = '',
     role_id: int =  -1
 
-def get_user_data(prime_nr: str) -> UserData:
+def get_user_data(prime_nr: str):
     user_data = UserData()
 
     if prime_nr != '-':
         sql_datas = ds.get_user_datas(prime_nr)
 
         if sql_datas:
-            mapped_values = {}
-            for sql_key, field_name in fm.USER_DATA_MAP.items():
-                 if sql_key in sql_datas:
-                     mapped_values[field_name] = sql_datas[sql_key]
-
-            user_data = UserData(**mapped_values)
+            user_data = _map_sql_data_to_dataclass(sql_datas, fm.USER_DATA_MAP, UserData)
             user_data.prime_nr = prime_nr
 
     return user_data
@@ -47,19 +81,14 @@ class TypeData:
     base_type_id: int = -1
     params: str = ''
 
-def get_type_data(product_id: int, station_group: int) -> TypeData:
+def get_type_data(product_id: int, station_group: int):
     type_data = TypeData()
 
     if product_id > 0:
         sql_datas = ds.get_type_datas(product_id, station_group)
 
         if sql_datas:
-            mapped_values = {}
-            for sql_key, field_name in fm.TYPE_DATA_MAP.items():
-                 if sql_key in sql_datas:
-                     mapped_values[field_name] = sql_datas[sql_key]
-
-            type_data = TypeData(**mapped_values)
+            type_data = _map_sql_data_to_dataclass(sql_datas, fm.TYPE_DATA_MAP, TypeData)
             type_data.id = product_id
 
     return type_data
@@ -77,19 +106,14 @@ class LabelData:
     sn_reset: str = ''
     copies: int = -1
 
-def get_label_data(product_id: int, entry_nr: int) -> LabelData:
+def get_label_data(product_id: int, entry_nr: int):
     label_data = LabelData()
 
     if product_id > 0:
         sql_datas = ds.get_label_datas(product_id, entry_nr)
 
         if sql_datas:
-            mapped_values = {}
-            for sql_key, field_name in fm.LABEL_DATA_MAP.items():
-                 if sql_key in sql_datas:
-                     mapped_values[field_name] = sql_datas[sql_key]
-
-            label_data = LabelData(**mapped_values)
+            label_data = _map_sql_data_to_dataclass(sql_datas, fm.LABEL_DATA_MAP, LabelData)
 
     return label_data
 
@@ -103,19 +127,14 @@ class OrderData:
     mat_nr: str = ''
     group_id: int = -1
 
-def get_order_data(order_nr: str) -> OrderData:
+def get_order_data(order_nr: str):
     order_data = OrderData()
 
-    if order_nr != '':
+    if order_nr:
         sql_datas = ds.get_order_details(order_nr)
 
         if sql_datas:
-            mapped_values = {}
-            for sql_key, field_name in fm.ORDER_DATA_MAP.items():
-                 if sql_key in sql_datas:
-                     mapped_values[field_name] = sql_datas[sql_key]
-
-            order_data = OrderData(**mapped_values)
+            order_data = _map_sql_data_to_dataclass(sql_datas, fm.ORDER_DATA_MAP, OrderData)
             order_data.order_nr = order_nr
 
     return order_data
@@ -131,19 +150,14 @@ class ProductData:
     cust_sn: str = ''
     dev_param: str = ''
 
-def get_product_data(ser_nr: str, product_id: int) -> ProductData:
+def get_product_data(ser_nr: str, product_id: int):
     product_data = ProductData()
 
     if ser_nr != '':
         sql_datas = ds.get_product_datas(ser_nr, product_id)
 
         if sql_datas:
-            mapped_values = {}
-            for sql_key, field_name in fm.PRODUCT_DATA_MAP.items():
-                 if sql_key in sql_datas:
-                     mapped_values[field_name] = sql_datas[sql_key]
-
-            product_data = ProductData(**mapped_values)
+            product_data = _map_sql_data_to_dataclass(sql_datas, fm.PRODUCT_DATA_MAP, ProductData)
             product_data.ser_nr = ser_nr
             product_data.product_id = product_id
 
@@ -173,12 +187,7 @@ def _get_work_instructions(wi_dicts: List[dict], station_id: int):
 
     if wi_dicts is not None and wi_dicts:
         for instruction_data_dict in wi_dicts:
-            mapped_values = {}
-            for sql_key, field_name in fm.WORK_INSTRUCTION_MAP.items():
-                if sql_key in instruction_data_dict:
-                    mapped_values[field_name] = instruction_data_dict[sql_key]
-
-            wi_instance = WorkInstructionData(**mapped_values)
+            wi_instance = _map_sql_data_to_dataclass(instruction_data_dict, fm.WORK_INSTRUCTION_MAP, WorkInstructionData)
 
             # Stationlist alapján kell-e ez a munkauti
             station_list_value = wi_instance.station_list
@@ -197,7 +206,7 @@ def _get_work_instructions(wi_dicts: List[dict], station_id: int):
             if should_append:
                 wi_datas = _get_workinstruction_datas(wi_instance.id)
 
-                mapped_values.clear
+                mapped_values = {}
                 for sql_key, field_name in fm.WORK_INSTRUCTION_MAP.items():
                     if sql_key in wi_datas:
                         mapped_values[field_name] = wi_datas[sql_key]
