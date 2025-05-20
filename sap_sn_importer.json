@@ -3,18 +3,34 @@
     "archive_path": "\\\\service-smt\\applications\\PrinterStation_Laser_KHU4\\if_Laser_KHU4\\vonstation\\archive",
     "station_id": 2005,
     "log_dir": "C:\\Logs\\SAP_SN_Importer_L2",
-    "time_threshold_seconds": 60
+    "time_threshold_seconds": 60,
+    "filename_pattern": "S*F.dat",
+    "interval_seconds": 1,
+    "log_level": "INFO",
+    "smtp_config": {
+      "mailhost": ["pilot.katek.int", 25],
+      "fromaddr": "sapsnimporter-l2@khu.katek.int",
+      "toaddrs": ["tamas.varga@katek-group.com"],
+      "subject": "Hibajelentés: SAP_SN_Importer_L2",
+      "level": "ERROR"
+    }
   },
   "SAP_SN_Importer_L5": {
     "archive_path": "\\\\service-smt\\applications\\PrinterStation_Laser_KHU3\\if_Laser_KHU3\\vonstation\\archive",
     "station_id": 5005,
     "log_dir": "C:\\Logs\\SAP_SN_Importer_L5",
-    "time_threshold_seconds": 60
+    "time_threshold_seconds": 60,
+    "filename_pattern": "S*F.dat",
+    "interval_seconds": 1,
+    "log_level": "INFO"
   },
   "SAP_SN_Importer_L6": {
     "archive_path": "\\\\service-smt\\applications\\PrinterStation_Laser_KHU5\\if_Laser_KHU5\\vonstation\\archive",
     "station_id": 6005,
-    "log_dir": "C:\\Logs\\SAP_SN_Importer_L5",
-    "time_threshold_seconds": 60
+    "log_dir": "C:\\Logs\\SAP_SN_Importer_L6",
+    "time_threshold_seconds": 60,
+    "filename_pattern": "S*F.dat",
+    "interval_seconds": 1,
+    "log_level": "INFO"
   }
 }

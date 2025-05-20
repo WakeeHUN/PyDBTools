@@ -4,6 +4,46 @@ import socket
 import uuid
 import fitz
 import psutil
+from typing import Dict, Any, Optional
+import json 
+
+
+# --- Konfiguráció Betöltő Függvény ---
+# A service nevét a SvcDoRun-ban tudod lekérdezni (self._svc_name_), azt át kell adni.
+def load_service_instance_config(config_file_path: str, service_name: str) -> Optional[Dict[str, Any]]:
+    """
+    Betölti az összes konfigurációt a fájlból, és visszaadja
+    az aktuális service-hez tartozó config dictionary-t.
+    None-t ad vissza hiba vagy nem található config esetén.
+    Használja a servicemanager-t a korai logoláshoz.
+    """
+    # A servicemanager csak a service környezetben érhető el!
+    # Ha ezt a függvényt service-en kívülről hívod, hibát dob, vagy kell egy fallback.
+    # Service környezetben:
+    # servicemanager.LogInfoMsg(...)
+    
+    all_configs: Dict[str, Any] = {}
+
+    if not os.path.exists(config_file_path):
+        print(f"FATAL: Konfigurációs fájl nem található: {config_file_path}")
+        return None
+
+    try:
+        with open(config_file_path, 'r', encoding='utf-8') as f:
+            all_configs = json.load(f)
+            print(f"Konfigurációs fájl sikeresen betöltve: {config_file_path}")
+
+    except Exception as e:
+        print(f"FATAL: Nem sikerült betölteni a konfigurációt a fájlból ({config_file_path}): {e}")
+        return None
+
+    instance_config = all_configs.get(service_name, None)
+    if instance_config is None:
+        print(f"FATAL: Nincs konfiguráció '{service_name}' nevű service-hez a fájlban.")
+        return None
+
+    print(f"Aktuális service '{service_name}' konfigurációja betöltve.")
+    return instance_config
 
 
 def log_to_file(event: str, logdir: str):

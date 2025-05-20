@@ -5,7 +5,8 @@ import logging
 import db_functions as db
 
 # --- A feldolgozó függvény ---
-def process_recent_files(archive_path, time_threshold, filename_pattern, station_id):
+def process_recent_files(archive_path: str, time_threshold: int, filename_pattern: str, 
+                         station_id, insert_rec_nr: bool = True):
     """
     Végigmegy a megadott útvonalon található fájlokon,
     feldolgozza azokat, amelyek illeszkednek a mintára és
@@ -71,6 +72,7 @@ def process_recent_files(archive_path, time_threshold, filename_pattern, station
                             if not array_data:
                                 success, array_id = db.insert_array_of_pcba(serial_numbers[0], order_data.product_id, station_id)
                                 if not success: continue
+                                if not insert_rec_nr: continue
 
                                 for array_pos, ser_nr in enumerate(serial_numbers, 1):
                                     success, rec_nr = db.insert_rec_nr_ser_nr(order_data.product_id, ser_nr, None, None, station_id)
