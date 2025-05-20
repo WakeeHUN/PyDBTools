@@ -83,7 +83,9 @@ class SAPImporterService(win32serviceutil.ServiceFramework):
         # A szolgáltatás fő ciklusa
         while self.is_running:
             # 1. Végezd el a feladatot:
-            importer.process_recent_files(archive_path, time_threshold, filename_pattern, station_id)
+            processed_files_count, error_msg = importer.process_recent_files(archive_path, time_threshold, filename_pattern, station_id)
+            if error_msg != '':
+                logging.error(error_msg)
 
             # 2. Várj az adott ideig VAGY amíg a leállási jelzést megkapod
             # win32event.WaitForSingleObject blokkol addig, amíg az esemény jelzést nem kap,

@@ -1,7 +1,6 @@
 import os
 import time
 import fnmatch
-import logging
 import db_functions as db
 
 # --- A feldolgozó függvény ---
@@ -12,9 +11,10 @@ def process_recent_files(archive_path: str, time_threshold: int, filename_patter
     feldolgozza azokat, amelyek illeszkednek a mintára és
     nem régebbiek a megadott idő küszöbnél (létrehozás ideje alapján).
     """
-    logging.info(f"Fájlok keresése itt: {archive_path}")
+    # logging.info(f"Fájlok keresése itt: {archive_path}")
     current_time = time.time() # Aktuális idő lekérdezése timestamp formátumban
     processed_files_count = 0
+    error_msg = ''
 
     try:
         # Listázzuk a könyvtár tartalmát
@@ -66,40 +66,51 @@ def process_recent_files(archive_path: str, time_threshold: int, filename_patter
 
                             # Adatbázis műveletek:
                             order_data = db.get_order_data(order_number)
+                            print(order_data)
 
                             # Megnézem, hogy létezik-e már a sorszám az adatbázisban
-                            array_data = db.get_array_data(serial_numbers[0], order_data.product_id)              
+                            array_data = db.get_array_data(serial_numbers[0], order_data.product_id)
+                            print(array_data)      
                             if not array_data:
                                 success, array_id = db.insert_array_of_pcba(serial_numbers[0], order_data.product_id, station_id)
+                                print(array_id)
                                 if not success: continue
                                 if not insert_rec_nr: continue
 
                                 for array_pos, ser_nr in enumerate(serial_numbers, 1):
                                     success, rec_nr = db.insert_rec_nr_ser_nr(order_data.product_id, ser_nr, None, None, station_id)
                                     if not success: continue
+                                    print(rec_nr)
 
-                                    success, proc_id = db.insert_rec_nr_last_station(rec_nr, STATION_ID, True, -1, order_data.order_nr)
+                                    success, proc_id = db.insert_rec_nr_last_station(rec_nr, station_id, True, -1, order_data.order_nr)
                                     if not success: continue
+                                    print(proc_id)
 
                                     success, array_items_id = db.insert_array_items(serial_numbers[0], rec_nr, array_pos, array_id)
+                                    print(array_items_id)
 
                     except Exception as file_read_err:
-                        print(f"Hiba a fájl olvasása vagy feldolgozása közben ({entry}): {file_read_err}")
+                        error_msg = f"Hiba a fájl olvasása vagy feldolgozása közben ({entry}): {file_read_err}"
+                        print(error_msg)
                         # Itt döntheted el, hogy hogyan kezeled a hibás fájlokat (pl. áthelyezed egy hibás mappába)
 
                 except Exception as file_info_err:
-                    print(f"Hiba a fájl információk lekérdezésekor ({entry}): {file_info_err}")
+                    error_msg = f"Hiba a fájl információk lekérdezésekor ({entry}): {file_info_err}"
+                    print(error_msg)
                     # Ez akkor fordulhat elő, ha nincs jogod, vagy a fájl pillanatnyilag nem elérhető
 
     except FileNotFoundError:
-        print(f"Hiba: Az útvonal nem található: {archive_path}")
+        error_msg = f"Hiba: Az útvonal nem található: {archive_path}"
+        print(error_msg)
     except PermissionError:
-        print(f"Hiba: Nincs jogosultság a könyvtár eléréséhez: {archive_path}")
+        error_msg = f"Hiba: Nincs jogosultság a könyvtár eléréséhez: {archive_path}"
+        print(error_msg)
     except Exception as e:
-        print(f"Váratlan hiba történt a könyvtár feldolgozása közben: {e}", exc_info=True)
+        error_msg = f"Váratlan hiba történt a könyvtár feldolgozása közben: {e}"
+        print(error_msg)
 
     print(f"Fájlkeresés befejeződött. Feldolgozott friss fájlok száma: {processed_files_count}")
-    return processed_files_count # Visszatérünk a feldolgozott fájlok számával
+    return processed_files_count, error_msg # Visszatérünk a feldolgozott fájlok számával és az esetleges hibaüzenettel
 
 
 # --- Önálló teszteléshez (NEM service-ként futtatva) ---

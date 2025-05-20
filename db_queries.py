@@ -1,16 +1,77 @@
 import mysql.connector
+import psycopg2
+import psycopg2.extras
 import os
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
+import logging
 
 
-DB_CONFIG = {
-    "host":     os.environ.get("DB_HOST", "10.180.8.23"),
+# MySQL
+MYSQL_DB_CONFIG = {
+    "db_type":  "mysql",
+    "host":     "10.180.8.23",
     "user":     os.environ.get("DB_USER"),
     "password": os.environ.get("DB_PASSWORD"),
-    "database": os.environ.get("DB_DATABASE", "traceability")
+    "database": "traceability",
+    "port":     3306
 }
 
+# PostgreSQL
+PSQL_DB_CONFIG = {
+    "db_type":  "postgresql",
+    "host":     "khudb01",
+    "user":     "vargat",
+    "password": "galaxys24",
+    "database": "traceability",
+    "port":     5432
+}
+
+DB_CONFIG = PSQL_DB_CONFIG
+
+# --- Adatbázis Kapcsolat Létrehozása ---
+def _get_db_connection(db_config: Dict[str, Any]):
+    """
+    Létrehoz egy adatbázis kapcsolatot a megadott konfiguráció alapján.
+    Dinamikusan választ MySQL és PostgreSQL között.
+    """
+    db_type = db_config.get("db_type", "mysql").lower() # Alapértelmezés MySQL, ha nincs megadva
+    host = db_config.get("host")
+    user = db_config.get("user")
+    password = db_config.get("password")
+    database = db_config.get("database")
+    port = db_config.get("port")
+
+    conn = None # Kapcsolat objektum
+
+    try:
+        if db_type == "mysql":
+            logging.info(f"Kapcsolódás MySQL adatbázishoz: {database}@{host}:{port or 3306}")
+            conn = mysql.connector.connect(
+                host=host,
+                user=user,
+                password=password,
+                database=database,
+                port=port or 3306 # MySQL alapértelmezett portja
+            )
+        elif db_type == "postgresql":
+            logging.info(f"Kapcsolódás PostgreSQL adatbázishoz: {database}@{host}:{port or 5432}")
+            conn = psycopg2.connect(
+                host=host,
+                user=user,
+                password=password,
+                dbname=database, # PostgreSQL-ben 'dbname' a 'database' helyett
+                port=port or 5432 # PostgreSQL alapértelmezett portja
+            )
+        else:
+            raise ValueError(f"Nem támogatott adatbázis típus a konfigurációban: {db_type}")
+
+        logging.info(f"Sikeres kapcsolódás a(z) {db_type} adatbázishoz.")
+        return conn
+    except Exception as e:
+        logging.error(f"Nem sikerült kapcsolódni a(z) {db_type} adatbázishoz: {e}", exc_info=True)
+        return None # Visszaadunk None-t, ha a kapcsolat sikertelen
+    
 
 def _execute_select_query(query, params=None, fetchone=False):
     """
@@ -32,13 +93,21 @@ def _execute_select_query(query, params=None, fetchone=False):
     try:
         # Létrehoz egy adatbázis kapcsolatot a DB_CONFIG szótárban megadott adatokkal.
         # A 'with' statement biztosítja, hogy a kapcsolat automatikusan bezáródjon,
-        # akár sikeres volt a művelet, akár hiba történt.
-        with mysql.connector.connect(**DB_CONFIG) as mydb:
-            # Létrehoz egy kurzor objektumot a lekérdezések végrehajtásához.
-            # A 'dictionary=True' beállítás miatt a lekérdezés eredményének sorai
-            # dictionary formában lesznek, ahol a kulcsok az oszlopnevek. Kényelmesebb feldolgozni.
-            # A 'with' statement itt is biztosítja a kurzor automatikus bezárását.
-            with mydb.cursor(dictionary=True) as mycursor:
+        # akár sikeres volt a művelet, akár hiba történt.      
+        with _get_db_connection(DB_CONFIG) as conn:
+            db_type = DB_CONFIG.get("db_type", "mysql").lower()
+
+            # --- JAVÍTÁS: Feltételes kurzor létrehozás a DB típus alapján ---
+            if db_type == "mysql":
+                # Feltételezzük, hogy a MySQL-nél is szótár-szerű eredményeket akarsz
+                cursor = conn.cursor(dictionary=True) 
+            elif db_type == "postgresql":
+                # PostgreSQL-nél a DictCursor-t kell használni a szótár-szerű eredményekhez
+                cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+            else:
+                raise ValueError(f"Nem támogatott adatbázis típus a kurzor létrehozásához: {db_type}")
+            
+            with cursor as mycursor:
                 mycursor.execute(query, params)
                 if fetchone:
                     # Visszaadja az első (vagy következő) sor eredményét dictionary-ként.
@@ -48,7 +117,8 @@ def _execute_select_query(query, params=None, fetchone=False):
                     # Visszaadja az összes hátralévő sor eredményét dictionary-k listájaként.
                     # Ha nincs eredmény, üres listát ad vissza.
                     return mycursor.fetchall()
-    except mysql.connector.Error as err:
+                
+    except conn.Error as err:
         print(f"Hiba az adatbázis művelet során: {err}")
         # Hiba esetén None-t ad vissza.
         return None
@@ -76,7 +146,11 @@ def _execute_modify_query(query, params=None):
     try:
         # Adatbázis csatlakozás
         # dictionary=True itt nem kell, mert nem SELECT eredményt várunk
-        conn = mysql.connector.connect(**DB_CONFIG)
+        #conn = mysql.connector.connect(**DB_CONFIG)
+        conn = _get_db_connection(DB_CONFIG)
+        if not conn:
+            return False
+        
         cursor = conn.cursor()
 
         # SQL utasítás végrehajtása paraméterekkel
@@ -101,14 +175,14 @@ def _execute_modify_query(query, params=None):
     except mysql.connector.Error as err:
         print(f"Adatbázis hiba az SQL végrehajtása során: {err}")
         # Hiba esetén visszavonjuk a tranzakciót
-        if conn and conn.is_connected():
+        if conn:
             conn.rollback()
         # Sikertelen volt
         return False, -1
     
     except Exception as e:
         print(f"Váratlan hiba az adatbázis művelet során: {e}")
-        if conn and conn.is_connected():
+        if conn:
             conn.rollback()
         return False, -1
 
@@ -116,7 +190,7 @@ def _execute_modify_query(query, params=None):
         # Erőforrások lezárása minden esetben
         if cursor:
             cursor.close()
-        if conn and conn.is_connected():
+        if conn:
             conn.close()  
 
 
@@ -145,8 +219,8 @@ def get_type_datas(product_id: int, station_group: int):
 
 def get_label_datas(product_id: int, entry_nr: int):
     query = """
-    SELECT lastSn, hwswIndex, bomNr, labelCode, foilType, labelFile, snFormat,
-    snResetType, copies FROM labels WHERE productId = %s AND entryNr = %s
+    SELECT labels.lastSn, labels.hwswIndex, labels.bomNr, labels.labelCode, labels.foilType, labels.labelFile, labels.snFormat,
+    labels.snResetType, labels.copies FROM labels WHERE labels.productId = %s AND labels.entryNr = %s
     """
     result = _execute_select_query(query, (product_id, entry_nr), fetchone=True)
     return result
@@ -156,7 +230,7 @@ def get_order_details(order_nr: str):
     SELECT order_details.productId, order_details.orderType, order_details.quantity, order_details.discount,
     order_details.closeDate, order_details.routing, order_details.matnr
     FROM order_details
-    WHERE (((order_details.orderNumber) = %s ))
+    WHERE order_details.orderNumber = %s
     """
     result = _execute_select_query(query, (order_nr,), fetchone=True)
     return result
@@ -172,8 +246,8 @@ def get_product_datas(ser_nr: str, product_id: int):
 
 def get_array_datas(ser_nr: str, product_id: int):
     query = """
-    SELECT arrayId, createDate, changeDate, lastStation, unGrouped
-    FROM arrayofpcba WHERE arraySerNr = %s AND arrayProductId = %s
+    SELECT arrayofpcba.arrayId, arrayofpcba.createDate, arrayofpcba.changeDate, arrayofpcba.lastStation, arrayofpcba.unGrouped
+    FROM arrayofpcba WHERE arrayofpcba.arraySerNr = %s AND arrayofpcba.arrayProductId = %s
     """
     result = _execute_select_query(query, (ser_nr, product_id), fetchone=True)
     return result

@@ -34,6 +34,11 @@ def _map_sql_data_to_dataclass(sql_data: Dict[str, Any], mapping_dict: Dict[str,
         if sql_key in sql_data:
             # Ha létezik, átmásoljuk az értéket
             mapped_values[field_name] = sql_data[sql_key]
+            
+        lower_sql_key = sql_key.lower()
+        if lower_sql_key in sql_data:
+            # Ha létezik, átmásoljuk az értéket
+            mapped_values[field_name] = sql_data[lower_sql_key]
 
     # Létrehozzuk a dataclass példányt a gyűjtött értékekkel.
     # A '**' operátor kicsomagolja a mapped_values dictionary-t kulcsszavas argumentumokként.
