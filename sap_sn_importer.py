@@ -1,6 +1,7 @@
 import os
 import time
 import fnmatch
+import logging
 import db_functions as db
 
 # --- A feldolgozó függvény ---
@@ -66,28 +67,22 @@ def process_recent_files(archive_path: str, time_threshold: int, filename_patter
 
                             # Adatbázis műveletek:
                             order_data = db.get_order_data(order_number)
-                            print(order_data)
 
                             # Megnézem, hogy létezik-e már a sorszám az adatbázisban
-                            array_data = db.get_array_data(serial_numbers[0], order_data.product_id)
-                            print(array_data)      
+                            array_data = db.get_array_data(serial_numbers[0], order_data.product_id)  
                             if not array_data:
                                 success, array_id = db.insert_array_of_pcba(serial_numbers[0], order_data.product_id, station_id)
-                                print(array_id)
                                 if not success: continue
                                 if not insert_rec_nr: continue
 
                                 for array_pos, ser_nr in enumerate(serial_numbers, 1):
                                     success, rec_nr = db.insert_rec_nr_ser_nr(order_data.product_id, ser_nr, None, None, station_id)
                                     if not success: continue
-                                    print(rec_nr)
 
                                     success, proc_id = db.insert_rec_nr_last_station(rec_nr, station_id, True, -1, order_data.order_nr)
                                     if not success: continue
-                                    print(proc_id)
 
                                     success, array_items_id = db.insert_array_items(serial_numbers[0], rec_nr, array_pos, array_id)
-                                    print(array_items_id)
 
                     except Exception as file_read_err:
                         error_msg = f"Hiba a fájl olvasása vagy feldolgozása közben ({entry}): {file_read_err}"

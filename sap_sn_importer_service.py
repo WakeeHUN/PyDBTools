@@ -83,7 +83,11 @@ class SAPImporterService(win32serviceutil.ServiceFramework):
         # A szolgáltatás fő ciklusa
         while self.is_running:
             # 1. Végezd el a feladatot:
-            processed_files_count, error_msg = importer.process_recent_files(archive_path, time_threshold, filename_pattern, station_id)
+            insert_rec_nr = True
+            if station_id == 8005:
+                insert_rec_nr = False
+                
+            processed_files_count, error_msg = importer.process_recent_files(archive_path, time_threshold, filename_pattern, station_id, insert_rec_nr)
             if error_msg != '':
                 logging.error(error_msg)
 
@@ -123,6 +127,16 @@ class SAP_SN_Importer_L5(SAPImporterService):
 class SAP_SN_Importer_L6(SAPImporterService):
     _svc_name_         = "SAP_SN_Importer_L6"
     _svc_display_name_ = "SAP SN Importer L6"
+    _svc_description_  = "Import SAP generated serialnumbers"
+
+class SAP_SN_Importer_Offline1(SAPImporterService):
+    _svc_name_         = "SAP_SN_Importer_Offline1"
+    _svc_display_name_ = "SAP SN Importer Offline1"
+    _svc_description_  = "Import SAP generated serialnumbers"
+
+class SAP_SN_Importer_Offline2(SAPImporterService):
+    _svc_name_         = "SAP_SN_Importer_Offline2"
+    _svc_display_name_ = "SAP SN Importer Offline2"
     _svc_description_  = "Import SAP generated serialnumbers"
 
 

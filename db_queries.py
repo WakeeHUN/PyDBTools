@@ -11,8 +11,18 @@ import logging
 MYSQL_DB_CONFIG = {
     "db_type":  "mysql",
     "host":     "10.180.8.23",
-    "user":     os.environ.get("DB_USER"),
-    "password": os.environ.get("DB_PASSWORD"),
+    "user":     os.environ.get("DB_USER_MYSQL", "importer_user"),
+    "password": os.environ.get("DB_PASSWORD_MYSQL", "p4pAQ9qC"),
+    "database": "traceability",
+    "port":     3306
+}
+
+# MySQL Backup
+MYSQL_BACKUP_DB_CONFIG = {
+    "db_type":  "mysql",
+    "host":     "srv14-db02",
+    "user":     "admin",
+    "password": "DgDAXcP22!",
     "database": "traceability",
     "port":     3306
 }
@@ -27,7 +37,9 @@ PSQL_DB_CONFIG = {
     "port":     5432
 }
 
-DB_CONFIG = PSQL_DB_CONFIG
+DB_CONFIG = MYSQL_BACKUP_DB_CONFIG
+DB_TYPE = "mysql"
+
 
 # --- Adatbázis Kapcsolat Létrehozása ---
 def _get_db_connection(db_config: Dict[str, Any]):
@@ -35,27 +47,26 @@ def _get_db_connection(db_config: Dict[str, Any]):
     Létrehoz egy adatbázis kapcsolatot a megadott konfiguráció alapján.
     Dinamikusan választ MySQL és PostgreSQL között.
     """
-    db_type = db_config.get("db_type", "mysql").lower() # Alapértelmezés MySQL, ha nincs megadva
-    host = db_config.get("host")
-    user = db_config.get("user")
+    global DB_TYPE
+    DB_TYPE  = db_config.get("db_type", "mysql").lower() # Alapértelmezés MySQL, ha nincs megadva
+    host     = db_config.get("host")
+    user     = db_config.get("user")
     password = db_config.get("password")
     database = db_config.get("database")
-    port = db_config.get("port")
+    port     = db_config.get("port")
 
     conn = None # Kapcsolat objektum
 
     try:
-        if db_type == "mysql":
-            logging.info(f"Kapcsolódás MySQL adatbázishoz: {database}@{host}:{port or 3306}")
+        if DB_TYPE == "mysql":
             conn = mysql.connector.connect(
                 host=host,
                 user=user,
                 password=password,
                 database=database,
-                port=port or 3306 # MySQL alapértelmezett portja
+                port=port or 3306, # MySQL alapértelmezett portja
             )
-        elif db_type == "postgresql":
-            logging.info(f"Kapcsolódás PostgreSQL adatbázishoz: {database}@{host}:{port or 5432}")
+        elif DB_TYPE == "postgresql":
             conn = psycopg2.connect(
                 host=host,
                 user=user,
@@ -64,15 +75,14 @@ def _get_db_connection(db_config: Dict[str, Any]):
                 port=port or 5432 # PostgreSQL alapértelmezett portja
             )
         else:
-            raise ValueError(f"Nem támogatott adatbázis típus a konfigurációban: {db_type}")
+            raise ValueError(f"Nem támogatott adatbázis típus a konfigurációban: {DB_TYPE}")
 
-        logging.info(f"Sikeres kapcsolódás a(z) {db_type} adatbázishoz.")
         return conn
     except Exception as e:
-        logging.error(f"Nem sikerült kapcsolódni a(z) {db_type} adatbázishoz: {e}", exc_info=True)
+        print(f"Nem sikerült kapcsolódni a(z) {DB_TYPE} adatbázishoz: {e}")
+        logging.error(f"Nem sikerült kapcsolódni a(z) {DB_TYPE} adatbázishoz: {e}", exc_info=True)
         return None # Visszaadunk None-t, ha a kapcsolat sikertelen
     
-
 def _execute_select_query(query, params=None, fetchone=False):
     """
     Végrehajt egy SELECT SQL lekérdezést az adatbázisban és visszaadja az eredményt.
@@ -95,17 +105,15 @@ def _execute_select_query(query, params=None, fetchone=False):
         # A 'with' statement biztosítja, hogy a kapcsolat automatikusan bezáródjon,
         # akár sikeres volt a művelet, akár hiba történt.      
         with _get_db_connection(DB_CONFIG) as conn:
-            db_type = DB_CONFIG.get("db_type", "mysql").lower()
-
             # --- JAVÍTÁS: Feltételes kurzor létrehozás a DB típus alapján ---
-            if db_type == "mysql":
+            if DB_TYPE == "mysql":
                 # Feltételezzük, hogy a MySQL-nél is szótár-szerű eredményeket akarsz
                 cursor = conn.cursor(dictionary=True) 
-            elif db_type == "postgresql":
+            elif DB_TYPE == "postgresql":
                 # PostgreSQL-nél a DictCursor-t kell használni a szótár-szerű eredményekhez
                 cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             else:
-                raise ValueError(f"Nem támogatott adatbázis típus a kurzor létrehozásához: {db_type}")
+                raise ValueError(f"Nem támogatott adatbázis típus a kurzor létrehozásához: {DB_TYPE}")
             
             with cursor as mycursor:
                 mycursor.execute(query, params)
@@ -122,7 +130,6 @@ def _execute_select_query(query, params=None, fetchone=False):
         print(f"Hiba az adatbázis művelet során: {err}")
         # Hiba esetén None-t ad vissza.
         return None
-
 
 def _execute_modify_query(query, params=None):
     """
@@ -145,32 +152,30 @@ def _execute_modify_query(query, params=None):
 
     try:
         # Adatbázis csatlakozás
-        # dictionary=True itt nem kell, mert nem SELECT eredményt várunk
-        #conn = mysql.connector.connect(**DB_CONFIG)
-        conn = _get_db_connection(DB_CONFIG)
-        if not conn:
-            return False
-        
-        cursor = conn.cursor()
+        with _get_db_connection(DB_CONFIG) as conn:
+            cursor = conn.cursor()
+            with cursor as mycursor:
+                # SQL utasítás végrehajtása paraméterekkel
+                mycursor.execute(query, params)
 
-        # SQL utasítás végrehajtása paraméterekkel
-        cursor.execute(query, params)
+                # Ha INSERT volt, lekérdezhetjük az utolsó beszúrt sor ID-ját (auto-increment oszlop esetén)
+                if query.strip().upper().startswith("INSERT"):
+                    if DB_TYPE == "mysql":
+                        lastrowid = mycursor.lastrowid
+                    elif DB_TYPE == "postgresql":
+                        lastrowid = mycursor.fetchone()[0]
+                else:
+                    # UPDATE vagy DELETE esetén lekérdezhetjük az érintett sorok számát
+                    affected_rows = mycursor.rowcount
 
-        # Ha INSERT volt, lekérdezhetjük az utolsó beszúrt sor ID-ját (auto-increment oszlop esetén)
-        if query.strip().upper().startswith("INSERT"):
-             lastrowid = cursor.lastrowid
-        else:
-             # UPDATE vagy DELETE esetén lekérdezhetjük az érintett sorok számát
-             affected_rows = cursor.rowcount
+                # Változtatások véglegesítése
+                conn.commit()
 
-        # Változtatások véglegesítése
-        conn.commit()
-
-        # Sikeres volt
-        if query.strip().upper().startswith("INSERT"):
-            return True, lastrowid
-        else:
-            return True, affected_rows # UPDATE/DELETE esetén érintett sorok száma
+                # Sikeres volt
+                if query.strip().upper().startswith("INSERT"):
+                    return True, lastrowid
+                else:
+                    return True, affected_rows # UPDATE/DELETE esetén érintett sorok száma
 
     except mysql.connector.Error as err:
         print(f"Adatbázis hiba az SQL végrehajtása során: {err}")
@@ -185,13 +190,6 @@ def _execute_modify_query(query, params=None):
         if conn:
             conn.rollback()
         return False, -1
-
-    finally:
-        # Erőforrások lezárása minden esetben
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()  
 
 
 # SELECT ---
@@ -286,10 +284,14 @@ def get_wi_datas(workinstruction_id: int):
 
 # INSERT ---
 def insert_array_of_pcba(serial_nr: str, product_id: int, last_station: int) -> Tuple[bool, int]:
-    query = """
-    INSERT INTO arrayofpcba (arraySerNr, arrayProductId, createDate, lastStation, unGrouped)
-    VALUES (%s, %s, NOW(), %s, FALSE)
-    """
+    insert_into_part = "INSERT INTO arrayofpcba"
+    insert_columns   = "arraySerNr, arrayProductId, createDate, lastStation, unGrouped"
+    values_part      = "VALUES (%s, %s, NOW(), %s, FALSE)"
+    returning_part   = ''
+    if DB_TYPE == "postgresql":
+        returning_part = "RETURNING arrayid"
+
+    query = f"{insert_into_part} ({insert_columns}) {values_part} {returning_part}"
     success, last_id = _execute_modify_query(query, (serial_nr, product_id, last_station))
     return success, last_id
 
@@ -304,8 +306,12 @@ def insert_rec_nr_ser_nr(product_id: int, serial_nr: str, customer_sn: str, dev_
     else:
         values_part = f"VALUES ({', '.join(['%s'] * 8)})"
         params = (product_id, serial_nr, customer_sn, dev_param, last_station, box_id, create_date, create_date)
-    query = f"{insert_into_part} ({insert_columns}) {values_part}"
 
+    returning_part = ''
+    if DB_TYPE == "postgresql":
+        returning_part = "RETURNING recnr"
+
+    query = f"{insert_into_part} ({insert_columns}) {values_part} {returning_part}"
     success, last_id = _execute_modify_query(query, params)
     return success, last_id
 
@@ -320,16 +326,23 @@ def insert_rec_nr_last_station(rec_nr: int, last_station: int, proc_state: bool,
     else:
         values_part = f"VALUES ({', '.join(['%s'] * 6)})"
         params = (last_station, proc_state, user_id, rec_nr, prod_order, change_date)
+    
+    returning_part = ''
+    if DB_TYPE == "postgresql":
+        returning_part = "RETURNING procid"
 
-    query = f"{insert_into_part} ({insert_columns}) {values_part}"
-
+    query = f"{insert_into_part} ({insert_columns}) {values_part} {returning_part}"
     success, last_id = _execute_modify_query(query, params)
     return success, last_id
 
 def insert_array_items(array_serial_nr: str, rec_nr: int, position: int, array_id: int) -> Tuple[bool, int]:
-    query = """
-    INSERT INTO arrayitems (arraySerNr, recNr, position, arrayId)
-    VALUES (%s, %s, %s, %s)
-    """
+    insert_into_part = "INSERT INTO arrayitems"
+    insert_columns   = "arraySerNr, recNr, position, arrayId"
+    values_part      = f"VALUES ({', '.join(['%s'] * 4)})"
+    returning_part   = ''
+    if DB_TYPE == "postgresql":
+        returning_part = "RETURNING arrayitemsid"
+
+    query = f"{insert_into_part} ({insert_columns}) {values_part} {returning_part}"
     success, last_id = _execute_modify_query(query, (array_serial_nr, rec_nr, position, array_id))
     return success, last_id
